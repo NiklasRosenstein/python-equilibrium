@@ -19,7 +19,7 @@ T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
-class ControllerContext:
+class Context:
     """
     The controller context is the main entry point for managing
 
@@ -33,7 +33,7 @@ class ControllerContext:
     resources: ResourceStore
 
     @classmethod
-    def with_json_backend(cls, directory: PathLike[str] | str) -> ControllerContext:
+    def with_json_backend(cls, directory: PathLike[str] | str) -> Context:
         return cls(JsonResourceStore(Path(directory)))
 
     def __init__(self, store: ResourceStore, default_namespace_name: str = "default") -> None:
