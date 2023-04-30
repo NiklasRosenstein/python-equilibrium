@@ -10,6 +10,7 @@ from nr.proxy import proxy
 
 from equilibrium.core.AdmissionController import AdmissionController
 from equilibrium.core.JsonResourceStore import JsonResourceStore
+from equilibrium.core.Namespace import Namespace
 from equilibrium.core.Resource import Resource
 from equilibrium.core.ResourceController import ResourceController
 from equilibrium.core.ResourceStore import ResourceStore
@@ -40,6 +41,7 @@ class ControllerContext:
         self._admission_controllers: list[AdmissionController] = []
         self._resource_types: dict[str, dict[str, type[Resource.Spec]]] = {}
         self.resources = store
+        self.register_resource_type(Namespace)
 
     def register_resource_type(self, resource_type: type[Resource.Spec]) -> None:
         self._resource_types.setdefault(resource_type.API_VERSION, {})[resource_type.KIND] = resource_type
@@ -60,6 +62,12 @@ class ControllerContext:
         Note that this method does not permit a resource which has state. This method can only be used to update a
         resource's metadata and spec. The state will be inherited from the existing resource, if it exists.
         """
+
+        # Validate that the resource type is registered.
+        if resource.apiVersion not in self._resource_types:
+            raise ValueError(f"Unknown resource type: {resource.apiVersion}/{resource.kind}")
+        if resource.kind not in self._resource_types[resource.apiVersion]:
+            raise ValueError(f"Unknown resource type: {resource.apiVersion}/{resource.kind}")
 
         if resource.state is not None:
             raise ValueError("Cannot put a resource with state into the resource store")

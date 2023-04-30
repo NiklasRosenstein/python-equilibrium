@@ -1,20 +1,16 @@
 import logging
-from pathlib import Path
-from hashlib import md5
 from dataclasses import dataclass
-from equilibrium.core.Resource import Resource
-from equilibrium.core.Namespace import Namespace
-from equilibrium.core.CrudResourceController import CrudResourceController
-from equilibrium.core.ControllerContext import ControllerContext
+from hashlib import md5
+from pathlib import Path
 
 from rich.logging import RichHandler
 
-logging.basicConfig(
-    level="NOTSET",
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(rich_tracebacks=True)]
-)
+from equilibrium.core.ControllerContext import ControllerContext
+from equilibrium.core.CrudResourceController import CrudResourceController
+from equilibrium.core.Resource import Resource
+
+logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)])
+
 
 @dataclass
 class LocalFile(Resource.Spec, apiVersion="example.com/v1", kind="LocalFile"):
@@ -26,9 +22,17 @@ class LocalFile(Resource.Spec, apiVersion="example.com/v1", kind="LocalFile"):
         path: str
         md5sumdigest: str
 
-class LocalFileController(CrudResourceController[LocalFile, LocalFile.State], spec_type=LocalFile, state_type=LocalFile.State):
 
-    def read(self, resource: Resource[LocalFile], state: LocalFile.State) -> LocalFile.State | CrudResourceController.Status:
+class LocalFileController(
+    CrudResourceController[LocalFile, LocalFile.State],
+    spec_type=LocalFile,
+    state_type=LocalFile.State,
+):
+    def read(
+        self,
+        resource: Resource[LocalFile],
+        state: LocalFile.State,
+    ) -> LocalFile.State | CrudResourceController.Status:
         try:
             with Path(state.path).open("rb") as f:
                 return LocalFile.State(state.path, md5(f.read()).hexdigest())
