@@ -60,8 +60,11 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         returns None.
         """
 
-    def _get_logger(self, uri: Resource.URI) -> Logger:
-        return logging.getLogger(self._logger_name).getChild(str(uri))
+    def _get_logger(self, uri: Resource.URI | None) -> Logger:
+        log = logging.getLogger(self._logger_name)
+        if uri:
+            log = log.getChild(str(uri))
+        return log
 
     def _reconcile_internal(self, lock: ResourceStore.LockID, uri: Resource.URI) -> None:
         log = self._get_logger(uri)
@@ -138,7 +141,15 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     # ResourceController
 
     def reconcile_once(self) -> None:
-        for namespace in self.resources.namespaces():
+        log = self._get_logger(None)
+
+        namespaces = self.resources.namespaces()
+        log.info(
+            "Reconciling resources of type '%s' (namespaces: %r)",
+            self.spec_type.TYPE,
+            {ns.metadata.name for ns in namespaces},
+        )
+        for namespace in namespaces:
             lock_request = self.resources.LockRequest(apiVersion=self.spec_type.API_VERSION, kind=self.spec_type.KIND)
             with self.resources.enter(lock_request) as lock:
                 search_request = self.resources.SearchRequest(
@@ -148,6 +159,12 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                 )
                 resource_uris = self.resources.search(lock, search_request)
 
+            log.debug(
+                "Found %d resources of type '%s' in namespace '%s'.",
+                len(resource_uris),
+                self.spec_type.TYPE,
+                namespace.metadata.name,
+            )
             for uri in resource_uris:
                 lock_request = self.resources.LockRequest.from_uri(uri)
                 with self.resources.enter(lock_request) as lock:

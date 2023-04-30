@@ -133,6 +133,7 @@ class JsonResourceStore(ResourceStore):
             apiVersion = apiVersion.replace("/", "_")
 
         for namespace_path in self._directory.iterdir():
+            # logger.debug("  Checking namespace '%s'.", namespace_path)
             if not namespace_path.is_dir():
                 continue
 
@@ -144,18 +145,21 @@ class JsonResourceStore(ResourceStore):
                 continue
 
             for apiVersion_path in namespace_path.iterdir():
+                # logger.debug("  Checking apiVersion '%s'.", apiVersion_path)
                 if not apiVersion_path.is_dir():
                     continue
                 if apiVersion is not None and apiVersion_path.name != apiVersion:
                     continue
 
                 for kind_path in apiVersion_path.iterdir():
+                    # logger.debug("  Checking kind '%s'.", kind_path)
                     if not kind_path.is_dir():
                         continue
                     if request.kind is not None and kind_path.name != request.kind:
                         continue
 
                     for name_path in kind_path.iterdir():
+                        # logger.debug("  Checking name '%s'.", name_path)
                         if not name_path.is_file() or name_path.suffix != ".json":
                             continue
                         if request.name is not None and name_path.stem != request.name:
@@ -254,12 +258,12 @@ class JsonResourceStore(ResourceStore):
                 return True
             return self._gettime() + valid_for < self._expires_at
 
-    def namespaces(self) -> Iterable[Resource[Namespace]]:
-        return self._namespaces.values()
+    def namespaces(self) -> list[Resource[Namespace]]:
+        return list(self._namespaces.values())
 
-    def search(self, lock: LockID, request: ResourceStore.SearchRequest) -> Iterable[Resource.URI]:
+    def search(self, lock: LockID, request: ResourceStore.SearchRequest) -> list[Resource.URI]:
         with self._checked(lock):
-            return self._search_unsafe(request)
+            return list(self._search_unsafe(request))
 
     def put(self, lock: LockID, resource: Resource[Any]) -> None:
         """

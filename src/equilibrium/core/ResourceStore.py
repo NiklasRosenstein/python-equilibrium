@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterable, Iterator, NewType
+from typing import Iterator, NewType
 
 from equilibrium.core.Namespace import Namespace
 from equilibrium.core.Resource import GenericResource, Resource
@@ -98,11 +98,11 @@ class ResourceStore(ABC):
         """
 
     @abstractmethod
-    def namespaces(self) -> Iterable[Resource[Namespace]]:
+    def namespaces(self) -> list[Resource[Namespace]]:
         """Iterate over all namespaces."""
 
     @abstractmethod
-    def search(self, lock: LockID, request: SearchRequest) -> Iterable[Resource.URI]:
+    def search(self, lock: LockID, request: SearchRequest) -> list[Resource.URI]:
         """
         Search for resources matching the given filter criteria.
 

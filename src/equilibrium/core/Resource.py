@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Generic, Literal, Mapping, TypeVar, cast, overload
 
@@ -40,11 +40,13 @@ class Resource(Generic[T]):
         API_VERSION: ClassVar[str] = ""
         KIND: ClassVar[str] = ""
         NAMESPACED: ClassVar[bool] = False
+        TYPE: ClassVar[str] = ""
 
         def __init_subclass__(cls, apiVersion: str, kind: str, namespaced: bool = True) -> None:
             cls.API_VERSION = apiVersion
             cls.KIND = kind
             cls.NAMESPACED = namespaced
+            cls.TYPE = f"{apiVersion}/{kind}"
             return super().__init_subclass__()
 
         @overload
@@ -77,9 +79,14 @@ class Resource(Generic[T]):
             Check if the given URI matches this resource type.
             """
 
-            if do_raise and (uri.namespace is None if cls.NAMESPACED else uri.namespace is not None):
-                raise ValueError(f"invalid namespace for {cls.API_VERSION}/{cls.KIND}: {uri.namespace!r}")
-
+            if cls.NAMESPACED and uri.namespace is None:
+                if do_raise:
+                    raise ValueError(f"missing namespace for Resource of type '{cls.TYPE}' (uri: {uri!r}).")
+                return False
+            if not cls.NAMESPACED and uri.namespace is not None:
+                if do_raise:
+                    raise ValueError(f"Resource of type '{cls.TYPE}' is not namespaced (uri: {uri!r}).")
+                return False
             return uri.apiVersion == cls.API_VERSION and uri.kind == cls.KIND
 
         def as_resource(self, metadata: Resource.Metadata) -> Resource[Self]:
@@ -151,6 +158,9 @@ class Resource(Generic[T]):
 
         def __repr__(self) -> str:
             return f"Resource.Metadata(namespace={self.namespace!r}, name={self.name!r})"
+
+        def with_namespace(self, namespace: str | None) -> Resource.Metadata:
+            return replace(self, namespace=namespace)
 
     @dataclass(frozen=True)
     class DeletionMarker:

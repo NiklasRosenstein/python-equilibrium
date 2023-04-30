@@ -36,10 +36,11 @@ class ControllerContext:
     def with_json_backend(cls, directory: PathLike[str] | str) -> ControllerContext:
         return cls(JsonResourceStore(Path(directory)))
 
-    def __init__(self, store: ResourceStore) -> None:
+    def __init__(self, store: ResourceStore, default_namespace_name: str = "default") -> None:
         self._resource_controllers: list[ResourceController] = []
         self._admission_controllers: list[AdmissionController] = []
         self._resource_types: dict[str, dict[str, type[Resource.Spec]]] = {}
+        self._default_namespace_name = default_namespace_name
         self.resources = store
         self.register_resource_type(Namespace)
 
@@ -73,7 +74,15 @@ class ControllerContext:
             raise ValueError("Cannot put a resource with state into the resource store")
 
         uri = resource.uri
+        resource_spec = self._resource_types[resource.apiVersion][resource.kind]
         with self.resources.enter(self.resources.LockRequest.from_uri(uri)) as lock:
+            # Give the resource the default namespace.
+            if uri.namespace is None and resource_spec.NAMESPACED:
+                resource.metadata = resource.metadata.with_namespace(self._default_namespace_name)
+                uri = resource.uri
+            resource_spec.check_uri(resource.uri, do_raise=True)
+
+            # Pass resource through admission controllers.
             generic_resource = resource.into_generic()
             for controller in self._admission_controllers:
                 new_resource = controller.admit_resource(generic_resource)
@@ -85,6 +94,7 @@ class ControllerContext:
             existing_resource = self.resources.get(lock, uri)
             generic_resource.state = existing_resource.state if existing_resource else None
 
+            logger.debug("Putting resource '%s'.", uri)
             self.resources.put(lock, generic_resource)
 
     def delete_resource(self, uri: Resource.URI, *, do_raise: bool = True, force: bool = False) -> bool:
