@@ -30,7 +30,6 @@ class LocalFileController(
 ):
     def read(
         self,
-        resource: Resource[LocalFile],
         state: LocalFile.State,
     ) -> LocalFile.State | CrudResourceController.Status:
         try:
@@ -57,8 +56,7 @@ class LocalFileController(
 
         md5sum = md5(resource.spec.content.encode("utf-8")).hexdigest()
         if state.md5sumdigest != md5sum or recreate:
-            logging.info("Updating local file '%s'", resource.spec.path)
-            Path(resource.spec.path).write_text(resource.spec.content)
+            state = self.create(resource)
 
         return LocalFile.State(resource.spec.path, md5sum)
 

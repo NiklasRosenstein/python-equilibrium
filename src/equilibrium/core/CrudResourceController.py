@@ -45,7 +45,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         """Create the resource. This is called only if *resource* was previously unknown to the system."""
 
     @abstractmethod
-    def read(self, resource: Resource[Resource.T_Spec], state: Resource.T_State) -> Resource.T_State | Status:
+    def read(self, state: Resource.T_State) -> Resource.T_State | Status:
         """Update the known state of the resource. This is called always before #update() and #delete()."""
 
     @abstractmethod
@@ -82,7 +82,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
 
             if current_state is not None:
                 log.debug("Resource '%s' has state, reading the latest.", uri)
-                response = self.read(resource, resource.state_as(self.state_type))
+                response = self.read(resource.state_as(self.state_type))
                 if response is self.Deleted:
                     current_state = None
                 elif not isinstance(response, self.state_type):
