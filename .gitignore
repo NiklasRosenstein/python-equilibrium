@@ -1,0 +1,10 @@
+__pycache__/
+.dmypy.json
+.venv/
+*.egg-info/
+/_tmp
+/.vscode
+/build
+/data
+/dist
+poetry.lock

@@ -1,0 +1,134 @@
+import logging
+from abc import abstractmethod
+from logging import Logger
+from typing import Any, ClassVar, Generic
+
+from equilibrium.core.AdmissionController import AdmissionController
+from equilibrium.core.Resource import GenericResource, Resource
+from equilibrium.core.ResourceController import ResourceController
+from equilibrium.core.ResourceStore import ResourceStore
+
+
+class CrudResourceController(ResourceController, AdmissionController, Generic[Resource.T_Spec, Resource.T_State]):
+    """
+    A base class for resource controllers that follow a CRUD pattern and may also control admittance.
+    """
+
+    spec_type: type[Resource.T_Spec]
+    state_type: type[Resource.T_State]
+    _logger_name: ClassVar[str]
+
+    def __init_subclass__(
+        cls, spec_type: type[Resource.T_Spec], state_type: type[Resource.T_State], **kwargs: Any
+    ) -> None:
+        super().__init_subclass__(**kwargs)
+        cls._logger_name = f"{cls.__module__}.{cls.__name__}"
+        cls.spec_type = spec_type
+        cls.state_type = state_type
+
+    @abstractmethod
+    def admit(self, resource: Resource[Resource.T_Spec]) -> Resource[Resource.T_Spec]:
+        """
+        Test for the admission of the resource into the system. A potentially modified version is returned. An
+        exception shall be raised if the resource cannot be admitted to the system. If the previous spec of the
+        resource is of interest, it can be retrieved with the #resources manager.
+        """
+
+    @abstractmethod
+    def create(self, resource: Resource[Resource.T_Spec]) -> Resource.T_State:
+        """Create the resource. This is called only if *resource* was previously unknown to the system."""
+
+    @abstractmethod
+    def read(self, resource: Resource[Resource.T_Spec], state: Resource.T_State) -> Resource.T_State:
+        """Update the known state of the resource. This is called always before #update() and #delete()."""
+
+    @abstractmethod
+    def update(self, resource: Resource[Resource.T_Spec], state: Resource.T_State) -> Resource.T_State:
+        """Update the state of the managed resource. This embodies the main reconcilation logic."""
+
+    @abstractmethod
+    def delete(self, state: Resource.T_State) -> Resource.T_State | None:
+        """
+        Delete a resource. This is called if a resource no longer exists in the system. Must return the resource
+        state if the deletion is in progress after the call. When the resource is finally deleted, the method
+        returns None.
+        """
+
+    def _get_logger(self, uri: Resource.URI) -> Logger:
+        return logging.getLogger(self._logger_name).getChild(str(uri))
+
+    # ResourceController
+
+    def reconcile_once(self) -> None:
+        for namespace in self.resources.namespaces():
+            lock_request = self.resources.LockRequest(apiVersion=self.spec_type.API_VERSION, kind=self.spec_type.KIND)
+            with self.resources.enter(lock_request) as lock:
+                search_request = self.resources.SearchRequest(
+                    apiVersion=self.spec_type.API_VERSION,
+                    kind=self.spec_type.KIND,
+                    namespace=namespace.metadata.name,
+                )
+                resource_uris = self.resources.search(lock, search_request)
+
+            for uri in resource_uris:
+                lock_request = self.resources.LockRequest.from_uri(uri)
+                with self.resources.enter(lock_request) as lock:
+                    self._reconcile_internal(lock, uri)
+
+    def _reconcile_internal(self, lock: ResourceStore.LockID, uri: Resource.URI) -> None:
+        log = self._get_logger(uri)
+        raw_resource = self.resources.get(lock, uri)
+        if raw_resource is None:
+            log.warning("Resource %r no longer exists, skipping reconciliation.", uri)
+            return
+
+        log.debug("Reconciling resource %r.", uri)
+        current_state: Resource.T_State | None = None
+        try:
+            resource: Resource[Resource.T_Spec] = raw_resource.into(self.spec_type)
+            if resource.state is None:
+                current_state = self.create(resource)
+                if not isinstance(current_state, self.state_type):
+                    raise RuntimeError(
+                        f"{type(self).__name__}.create() is expected to return an object of type "
+                        f"{self.state_type.__name__}, got {type(current_state).__name__} instead."
+                    )
+            else:
+                current_state = self.read(resource, resource.state_as(self.state_type))
+                if not isinstance(current_state, self.state_type):
+                    raise RuntimeError(
+                        f"{type(self).__name__}.read() is expected to return an object of type "
+                        f"{self.state_type.__name__}, got {type(current_state).__name__} instead."
+                    )
+                if resource.deletion_marker:
+                    current_state = self.delete(resource.state_as(self.state_type))
+                    if not isinstance(current_state, self.state_type) and current_state is not None:
+                        raise RuntimeError(
+                            f"{type(self).__name__}.delete() is expected to return an object of type "
+                            f"{self.state_type.__name__} or None, got {type(current_state).__name__} instead."
+                        )
+                else:
+                    current_state = self.update(resource, current_state)
+                    if not isinstance(current_state, self.state_type):
+                        raise RuntimeError(
+                            f"{type(self).__name__}.update() is expected to return an object of type "
+                            f"{self.state_type.__name__}, got {type(current_state).__name__} instead."
+                        )
+
+            if current_state is None:
+                self.resources.delete(lock, uri)
+            else:
+                resource.state_from(self.state_type, current_state)
+                self.resources.put(lock, resource.into_generic())
+
+        except Exception:
+            log.exception("An unhandled exception occurred reconciling a resource.")
+
+    # AdmissionController
+
+    def admit_resource(self, resource: GenericResource) -> GenericResource:
+        if self.spec_type.check_uri(resource.uri):
+            log = self._get_logger(resource.uri)
+            log.debug("Checking for admittance of resource %r.", resource.uri)
+            return self.admit(resource.into(self.spec_type)).into_generic()
+        return resource
