@@ -89,7 +89,7 @@ class JsonResourceStore(ResourceStore):
             if resource is None:
                 logger.warning("Namespace resource %s is missing.", uri.name)
             else:
-                namespaces[resource.metadata.name] = resource.into(Namespace)  # type: ignore[type-abstract]
+                namespaces[resource.metadata.name] = resource.into(Namespace)
 
         return namespaces
 
