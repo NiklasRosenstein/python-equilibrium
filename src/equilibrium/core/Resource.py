@@ -3,18 +3,20 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
-from typing import Any, ClassVar, Generic, Literal, Mapping, TypeVar, cast, overload
+from typing import Any, ClassVar, Generic, Literal, Mapping, Protocol, TypeVar, cast, overload
 
 import databind.json
 from databind.json.settings import JsonConverter
 from typing_extensions import Self  # 3.11+
 
-from equilibrium.utils.protocols import Dataclass
-
 T = TypeVar("T")
 
 VALID_IDENTIFIER_REGEX = r"^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$"
 VALID_APIVERSION_REGEX = r"^[\.a-z0-9]([-\.a-z0-9]*[\.a-z0-9])?(/[\.a-z0-9]([-\.a-z0-9]*[\.a-z0-9])?)*$"
+
+
+class Dataclass(Protocol):
+    __dataclass_fields__: Mapping[str, Any]
 
 
 def validate_identifier(s: str, name: str) -> None:
