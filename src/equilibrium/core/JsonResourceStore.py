@@ -106,7 +106,7 @@ class JsonResourceStore(ResourceStore):
         except FileNotFoundError:
             return None
         else:
-            logger.debug("Loaded resource %s from disk.", uri)
+            logger.debug("Loaded resource '%s' from disk.", uri)
             self._cache[uri] = resource
             return resource
 
