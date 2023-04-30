@@ -260,7 +260,7 @@ class Resource(Generic[T]):
     def get_state(self, state_type: type[U_State] | type[GenericState] | type[dict]) -> U_State | GenericState:
         if self.state is None:
             raise ValueError("resource has no state")
-        if state_type is Resource.GenericState or state_type is dict:
+        if state_type == Resource.GenericState or state_type is dict:
             return self.state
         else:
             return cast(U_State, databind.json.load(self.state, state_type))
