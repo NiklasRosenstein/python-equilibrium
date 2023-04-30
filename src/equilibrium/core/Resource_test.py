@@ -53,4 +53,5 @@ def test__Resource__get_state() -> None:
     )
 
     assert resource.get_state(Resource.GenericState) is resource.state
+    assert resource.get_state(dict) is resource.state
     assert resource.get_state(MyState) == MyState(a=1)
