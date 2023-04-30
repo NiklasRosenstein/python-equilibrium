@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod
+from enum import Enum
 from logging import Logger
 from typing import Any, ClassVar, Generic
 
@@ -17,6 +18,11 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     spec_type: type[Resource.T_Spec]
     state_type: type[Resource.T_State]
     _logger_name: ClassVar[str]
+
+    class Status(Enum):
+        Deleted = "deleted"
+
+    Deleted = Status.Deleted
 
     def __init_subclass__(
         cls, spec_type: type[Resource.T_Spec], state_type: type[Resource.T_State], **kwargs: Any
@@ -39,7 +45,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         """Create the resource. This is called only if *resource* was previously unknown to the system."""
 
     @abstractmethod
-    def read(self, resource: Resource[Resource.T_Spec], state: Resource.T_State) -> Resource.T_State:
+    def read(self, resource: Resource[Resource.T_Spec], state: Resource.T_State) -> Resource.T_State | Status:
         """Update the known state of the resource. This is called always before #update() and #delete()."""
 
     @abstractmethod
@@ -47,7 +53,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         """Update the state of the managed resource. This embodies the main reconcilation logic."""
 
     @abstractmethod
-    def delete(self, state: Resource.T_State) -> Resource.T_State | None:
+    def delete(self, state: Resource.T_State) -> Resource.T_State | Status:
         """
         Delete a resource. This is called if a resource no longer exists in the system. Must return the resource
         state if the deletion is in progress after the call. When the resource is finally deleted, the method
@@ -82,11 +88,32 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
             log.warning("Resource %r no longer exists, skipping reconciliation.", uri)
             return
 
-        log.debug("Reconciling resource %r.", uri)
-        current_state: Resource.T_State | None = None
+        log.debug("Reconciling resource '%s'.", uri)
         try:
             resource: Resource[Resource.T_Spec] = raw_resource.into(self.spec_type)
-            if resource.state is None:
+            current_state: Resource.T_State | None = (
+                resource.state_as(self.state_type) if resource.state is not None else None
+            )
+
+            if current_state is not None:
+                log.debug("Resource '%s' has state, reading the latest.", uri)
+                response = self.read(resource, resource.state_as(self.state_type))
+                if response is self.Deleted:
+                    current_state = None
+                elif not isinstance(response, self.state_type):
+                    raise RuntimeError(
+                        f"{type(self).__name__}.read() is expected to return an object of type "
+                        f"{self.state_type.__name__} or Status.Deleted, got {type(response).__name__} instead."
+                    )
+                else:
+                    current_state = response
+
+            if current_state is None:
+                if resource.state is None:
+                    log.debug("Resource '%s' is new, creating it.", uri)
+                else:
+                    log.debug("Resource '%s' was lost, creating it.", uri)
+
                 current_state = self.create(resource)
                 if not isinstance(current_state, self.state_type):
                     raise RuntimeError(
@@ -94,20 +121,20 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                         f"{self.state_type.__name__}, got {type(current_state).__name__} instead."
                     )
             else:
-                current_state = self.read(resource, resource.state_as(self.state_type))
-                if not isinstance(current_state, self.state_type):
-                    raise RuntimeError(
-                        f"{type(self).__name__}.read() is expected to return an object of type "
-                        f"{self.state_type.__name__}, got {type(current_state).__name__} instead."
-                    )
                 if resource.deletion_marker:
-                    current_state = self.delete(resource.state_as(self.state_type))
-                    if not isinstance(current_state, self.state_type) and current_state is not None:
+                    log.debug("Resource '%s' is marked for deletion.", uri)
+                    response = self.delete(resource.state_as(self.state_type))
+                    if response is self.Deleted:
+                        current_state = None
+                    elif not isinstance(response, self.state_type):
                         raise RuntimeError(
                             f"{type(self).__name__}.delete() is expected to return an object of type "
-                            f"{self.state_type.__name__} or None, got {type(current_state).__name__} instead."
+                            f"{self.state_type.__name__} or Status.Deleted, got {type(response).__name__} instead."
                         )
+                    else:
+                        current_state = response
                 else:
+                    log.debug("Resource '%s' is not marked for deletion, updating it.", uri)
                     current_state = self.update(resource, current_state)
                     if not isinstance(current_state, self.state_type):
                         raise RuntimeError(
@@ -116,8 +143,10 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                         )
 
             if current_state is None:
+                log.debug("Resource '%s' has been deleted.", uri)
                 self.resources.delete(lock, uri)
             else:
+                log.debug("Resource '%s' has been updated.", uri)
                 resource.state_from(self.state_type, current_state)
                 self.resources.put(lock, resource.into_generic())
 
@@ -129,6 +158,6 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     def admit_resource(self, resource: GenericResource) -> GenericResource:
         if self.spec_type.check_uri(resource.uri):
             log = self._get_logger(resource.uri)
-            log.debug("Checking for admittance of resource %r.", resource.uri)
+            log.debug("Checking for admittance of resource '%s'.", resource.uri)
             return self.admit(resource.into(self.spec_type)).into_generic()
         return resource

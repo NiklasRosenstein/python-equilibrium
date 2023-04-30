@@ -56,7 +56,13 @@ class ControllerContext:
         Put a resource into the resource store. This will trigger the admission controllers. Any admission controller
         may complain about the resource, mutate it and raise an exception if necessary. This exception will propagate
         to the caller of #put_resource().
+
+        Note that this method does not permit a resource which has state. This method can only be used to update a
+        resource's metadata and spec. The state will be inherited from the existing resource, if it exists.
         """
+
+        if resource.state is not None:
+            raise ValueError("Cannot put a resource with state into the resource store")
 
         uri = resource.uri
         with self.resources.enter(self.resources.LockRequest.from_uri(uri)) as lock:
@@ -66,10 +72,41 @@ class ControllerContext:
                 if new_resource.uri != uri:
                     raise RuntimeError(f"Admission controller mutated resource URI (controller: {controller!r})")
                 generic_resource = new_resource
+
+            # Inherit the state of an existing resource, if it exists.
+            existing_resource = self.resources.get(lock, uri)
+            generic_resource.state = existing_resource.state if existing_resource else None
+
             self.resources.put(lock, generic_resource)
 
-    def load_manifest(self, path: Path) -> None:
-        with path.open() as fp:
+    def delete_resource(self, uri: Resource.URI, *, do_raise: bool = True, force: bool = False) -> bool:
+        """
+        Mark a resource as deleted. A controller must take care of actually removing it from the system.
+        If *force* is True, the resource will be removed from the store immediately. If the resource is not found,
+        a #Resource.NotFound error will be raised.
+
+        If *do_raise* is False, this method will return False if the resource was not found.
+        """
+
+        with self.resources.enter(self.resources.LockRequest.from_uri(uri)) as lock:
+            resource = self.resources.get(lock, uri)
+            if resource is None:
+                logger.info("Could not delete Resource '%s', not found.", uri)
+                if do_raise:
+                    raise Resource.NotFound(uri)
+                return False
+            if force:
+                logger.info("Force deleting resource '%s'.", uri)
+                self.resources.delete(lock, uri)
+            elif resource.deletion_marker is None:
+                logger.info("Marking resource '%s' as deleted.", uri)
+                resource.deletion_marker = Resource.DeletionMarker()
+            else:
+                logger.info("Resource '%s' is already marked as deleted.", uri)
+            return True
+
+    def load_manifest(self, path: PathLike[str] | str) -> None:
+        with Path(path).open() as fp:
             for payload in yaml.safe_load_all(fp):
                 resource = Resource.of(payload)
                 self.put_resource(resource)

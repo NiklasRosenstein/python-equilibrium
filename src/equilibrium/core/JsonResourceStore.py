@@ -76,6 +76,7 @@ class JsonResourceStore(ResourceStore):
         Loads all namespace resources and returns a set of all namespace names.
         """
 
+        logger.debug("Loading namespaces from disk.")
         namespaces: dict[str, Resource[Namespace]] = {}
 
         search_request = self.SearchRequest(
@@ -94,6 +95,7 @@ class JsonResourceStore(ResourceStore):
 
     def _get_unsafe(self, uri: Resource.URI) -> GenericResource | None:
         if uri in self._cache:
+            logger.debug("Returning resource '%s' from cache.", uri)
             return self._cache[uri]
 
         path = self._get_resource_path(uri)
@@ -104,6 +106,7 @@ class JsonResourceStore(ResourceStore):
         except FileNotFoundError:
             return None
         else:
+            logger.debug("Loaded resource %s from disk.", uri)
             self._cache[uri] = resource
             return resource
 
@@ -122,6 +125,8 @@ class JsonResourceStore(ResourceStore):
         """
         Performs a search for resources without locking.
         """
+
+        logger.debug("Searching for resources: %s", request)
 
         apiVersion = request.apiVersion
         if apiVersion is not None:
@@ -264,6 +269,7 @@ class JsonResourceStore(ResourceStore):
         is_namespace = Namespace.check_uri(resource.uri)
 
         with self._checked(lock):
+            logger.debug("Persisting resource '%s'", resource.uri)
             # If the resource is namespaced, the associated namespace must exist.
             namespace = resource.metadata.namespace
             if namespace and namespace not in self._namespaces:
@@ -298,6 +304,7 @@ class JsonResourceStore(ResourceStore):
             if is_namespace and any(self._search_unsafe(self.SearchRequest(namespace=uri.name))):
                 raise self.NamespaceNotEmpty(uri.name)
 
+            logger.debug("Deleting resource %s from disk.", uri)
             self._cache.pop(uri, None)
             if is_namespace:
                 self._namespaces.pop(uri.name, None)

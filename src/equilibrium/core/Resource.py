@@ -109,7 +109,10 @@ class Resource(Generic[T]):
             validate_identifier(self.name, "name")
 
         def __str__(self) -> str:
-            return f"{self.apiVersion}/{self.kind}/{self.namespace}/{self.name}"
+            if self.namespace is not None:
+                return f"{self.apiVersion}/{self.kind}/{self.namespace}/{self.name}"
+            else:
+                return f"{self.apiVersion}/{self.kind}/{self.name}"
 
         @staticmethod
         def of(s: str) -> Resource.URI:
@@ -165,7 +168,17 @@ class Resource(Generic[T]):
     apiVersion: str
     kind: str
     metadata: Metadata
-    spec: T
+
+    # Namespaces in particular should not require an explicit spec to be specified when it is
+    # actually empty. However, we must be careful because when we create a non-generic Resource,
+    # this default value is actually invalid.
+    #
+    # A feature to only specify a default value for deserialization would improve this, but is still
+    # not perfectly safe because a non-generic Resource could also be deserialized directly.
+    #
+    # Related databind FR: https://github.com/NiklasRosenstein/python-databind/issues/43
+    spec: T = field(default_factory=lambda: cast(T, {}))
+
     deletion_marker: DeletionMarker | None = None
     state: GenericState | None = None
 
@@ -188,6 +201,8 @@ class Resource(Generic[T]):
             self.kind,
             self.metadata,
             cast(dict[str, Any], databind.json.dump(self.spec, type(self.spec))),
+            self.deletion_marker,
+            self.state,
         )
 
     def into(self, spec_type: type[U_Spec]) -> Resource[U_Spec]:
