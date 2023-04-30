@@ -11,7 +11,7 @@ from nr.proxy import proxy
 from equilibrium.core.AdmissionController import AdmissionController
 from equilibrium.core.JsonResourceStore import JsonResourceStore
 from equilibrium.core.Namespace import Namespace
-from equilibrium.core.Resource import Resource
+from equilibrium.core.Resource import GenericResource, Resource
 from equilibrium.core.ResourceController import ResourceController
 from equilibrium.core.ResourceStore import ResourceStore
 
@@ -55,7 +55,7 @@ class Context:
         if isinstance(controller, ResourceController):
             self._resource_controllers.append(controller)
 
-    def put_resource(self, resource: Resource[Any]) -> None:
+    def put_resource(self, resource: Resource[Any]) -> GenericResource:
         """
         Put a resource into the resource store. This will trigger the admission controllers. Any admission controller
         may complain about the resource, mutate it and raise an exception if necessary. This exception will propagate
@@ -98,6 +98,8 @@ class Context:
             logger.debug("Putting resource '%s'.", uri)
             self.resources.put(lock, generic_resource)
 
+        return generic_resource
+
     def delete_resource(self, uri: Resource.URI, *, do_raise: bool = True, force: bool = False) -> bool:
         """
         Mark a resource as deleted. A controller must take care of actually removing it from the system.
@@ -124,11 +126,13 @@ class Context:
                 logger.info("Resource '%s' is already marked as deleted.", uri)
             return True
 
-    def load_manifest(self, path: PathLike[str] | str) -> None:
+    def load_manifest(self, path: PathLike[str] | str) -> list[GenericResource]:
+        resources = []
         with Path(path).open() as fp:
             for payload in yaml.safe_load_all(fp):
                 resource = Resource.of(payload)
-                self.put_resource(resource)
+                resources.append(self.put_resource(resource))
+        return resources
 
     def reconcile_once(self) -> None:
         for controller in self._resource_controllers:
