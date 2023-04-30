@@ -63,24 +63,6 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     def _get_logger(self, uri: Resource.URI) -> Logger:
         return logging.getLogger(self._logger_name).getChild(str(uri))
 
-    # ResourceController
-
-    def reconcile_once(self) -> None:
-        for namespace in self.resources.namespaces():
-            lock_request = self.resources.LockRequest(apiVersion=self.spec_type.API_VERSION, kind=self.spec_type.KIND)
-            with self.resources.enter(lock_request) as lock:
-                search_request = self.resources.SearchRequest(
-                    apiVersion=self.spec_type.API_VERSION,
-                    kind=self.spec_type.KIND,
-                    namespace=namespace.metadata.name,
-                )
-                resource_uris = self.resources.search(lock, search_request)
-
-            for uri in resource_uris:
-                lock_request = self.resources.LockRequest.from_uri(uri)
-                with self.resources.enter(lock_request) as lock:
-                    self._reconcile_internal(lock, uri)
-
     def _reconcile_internal(self, lock: ResourceStore.LockID, uri: Resource.URI) -> None:
         log = self._get_logger(uri)
         raw_resource = self.resources.get(lock, uri)
@@ -152,6 +134,24 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
 
         except Exception:
             log.exception("An unhandled exception occurred reconciling a resource.")
+
+    # ResourceController
+
+    def reconcile_once(self) -> None:
+        for namespace in self.resources.namespaces():
+            lock_request = self.resources.LockRequest(apiVersion=self.spec_type.API_VERSION, kind=self.spec_type.KIND)
+            with self.resources.enter(lock_request) as lock:
+                search_request = self.resources.SearchRequest(
+                    apiVersion=self.spec_type.API_VERSION,
+                    kind=self.spec_type.KIND,
+                    namespace=namespace.metadata.name,
+                )
+                resource_uris = self.resources.search(lock, search_request)
+
+            for uri in resource_uris:
+                lock_request = self.resources.LockRequest.from_uri(uri)
+                with self.resources.enter(lock_request) as lock:
+                    self._reconcile_internal(lock, uri)
 
     # AdmissionController
 
