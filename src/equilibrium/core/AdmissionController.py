@@ -10,6 +10,9 @@ class AdmissionController(ABC):
     # These are set automatically when the controller is registered to a context.
     resources: ResourceStore
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
     @abstractmethod
     def admit_resource(self, resource: GenericResource) -> GenericResource:
         """An arbitrary exception may be raised to deny the resource."""
