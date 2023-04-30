@@ -23,10 +23,17 @@ def sut(tempdir: Path) -> JsonResourceStore:
     mgr = JsonResourceStore(tempdir)
     with mgr.enter(mgr.LockRequest()) as lock:
         mgr.put(lock, Namespace.create_resource("default"))
-        mgr.put(lock, Namespace.create_resource("foobar"))
+        mgr.put(lock, Namespace.create_resource("foobar", labels={"spam": "eggs"}))
         mgr.put(
             lock,
-            Resource("v1", "MyResource", Resource.Metadata("default", "my-resource"), {}, None, {"state": "active"}),
+            Resource(
+                "v1",
+                "MyResource",
+                Resource.Metadata("default", "my-resource", labels={"foo": "bar"}),
+                {},
+                None,
+                {"state": "active"},
+            ),
         )
         mgr.put(
             lock,
@@ -68,7 +75,6 @@ def test__JsonResourceStore__enter__does_not_permit_reentry_from_another_thread(
     assert success, "Thread did not raise TimeoutError"
 
 
-# Must test lock acquisition in thread
 def test__JsonResourceStore__enter__immediately_returns_when_block_is_false(
     sut: JsonResourceStore, lock: LockID
 ) -> None:
@@ -89,7 +95,12 @@ def test__JsonResourceStore__enter__immediately_returns_when_block_is_false(
 
 def test__JsonResourceStore__get(sut: JsonResourceStore, lock: LockID) -> None:
     assert sut.get(lock, Resource.URI("v1", "MyResource", "default", "my-resource")) == Resource(
-        "v1", "MyResource", Resource.Metadata("default", "my-resource"), {}, None, {"state": "active"}
+        "v1",
+        "MyResource",
+        Resource.Metadata("default", "my-resource", labels={"foo": "bar"}),
+        {},
+        None,
+        {"state": "active"},
     )
 
 
@@ -148,6 +159,15 @@ def test__JsonResourceStore__search__by_name(sut: JsonResourceStore, lock: LockI
     }
     assert set(sut.search(lock, sut.SearchRequest(name="my-multi"))) == {
         Resource.URI("apps/v1", "MultiResource", "foobar", "my-multi"),
+    }
+
+
+def test__JsonResourceStore__search__by_labels(sut: JsonResourceStore, lock: LockID) -> None:
+    assert set(sut.search(lock, sut.SearchRequest(labels={"spam": "eggs"}))) == {
+        Resource.URI("v1", "Namespace", None, "foobar"),
+    }
+    assert set(sut.search(lock, sut.SearchRequest(labels={"foo": "bar"}))) == {
+        Resource.URI("v1", "MyResource", "default", "my-resource"),
     }
 
 
