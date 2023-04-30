@@ -169,6 +169,10 @@ def test__JsonResourceStore__search__by_labels(sut: JsonResourceStore, lock: Loc
     assert set(sut.search(lock, sut.SearchRequest(labels={"foo": "bar"}))) == {
         Resource.URI("v1", "MyResource", "default", "my-resource"),
     }
+    assert set(sut.search(lock, sut.SearchRequest(namespace="default", labels={"foo": "bar"}))) == {
+        Resource.URI("v1", "MyResource", "default", "my-resource"),
+    }
+    assert set(sut.search(lock, sut.SearchRequest(namespace="foobar", labels={"foo": "bar"}))) == set()
 
 
 def test__JsonResourceStore__delete(sut: JsonResourceStore, lock: LockID) -> None:
