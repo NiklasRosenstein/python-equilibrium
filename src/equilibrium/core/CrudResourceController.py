@@ -77,12 +77,12 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         try:
             resource: Resource[Resource.T_Spec] = raw_resource.into(self.spec_type)
             current_state: Resource.T_State | None = (
-                resource.state_as(self.state_type) if resource.state is not None else None
+                resource.get_state(self.state_type) if resource.state is not None else None
             )
 
             if current_state is not None:
                 log.debug("Resource '%s' has state, reading the latest.", uri)
-                response = self.read(resource.state_as(self.state_type))
+                response = self.read(resource.get_state(self.state_type))
                 if response is self.Deleted:
                     current_state = None
                 elif not isinstance(response, self.state_type):
@@ -108,7 +108,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
             else:
                 if resource.deletion_marker:
                     log.debug("Resource '%s' is marked for deletion.", uri)
-                    response = self.delete(resource.state_as(self.state_type))
+                    response = self.delete(resource.get_state(self.state_type))
                     if response is self.Deleted:
                         current_state = None
                     elif not isinstance(response, self.state_type):
@@ -132,7 +132,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                 self.resources.delete(lock, uri)
             else:
                 log.debug("Resource '%s' has been updated.", uri)
-                resource.state_from(self.state_type, current_state)
+                resource.set_state(self.state_type, current_state)
                 self.resources.put(lock, resource.into_generic())
 
         except Exception:

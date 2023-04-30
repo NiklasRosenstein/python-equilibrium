@@ -249,12 +249,23 @@ class Resource(Generic[T]):
         spec.check_uri(resource.uri, do_raise=True)
         return resource
 
-    def state_as(self, state_type: type[T_State]) -> T_State:
+    @overload
+    def get_state(self, state_type: type[T_State]) -> T_State:
+        ...
+
+    @overload
+    def get_state(self, state_type: type[GenericState]) -> GenericState:
+        ...
+
+    def get_state(self, state_type: type[U_State] | type[GenericState]) -> U_State | GenericState:
         if self.state is None:
             raise ValueError("resource has no state")
-        return databind.json.load(self.state, state_type)
+        if state_type is Resource.GenericState:
+            return self.state
+        else:
+            return cast(U_State, databind.json.load(self.state, state_type))
 
-    def state_from(self, state_type: type[T_State], state: T_State) -> None:
+    def set_state(self, state_type: type[T_State], state: T_State) -> None:
         self.state = cast(Resource.GenericState, databind.json.dump(state, state_type))
 
 

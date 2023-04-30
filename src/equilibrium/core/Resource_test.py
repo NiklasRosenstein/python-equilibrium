@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import pytest
 
 from equilibrium.core.Resource import Resource
@@ -26,3 +28,29 @@ def test__Resource_Spec__check_uri__validates_namespaceless_uri() -> None:
 
     assert MySpec.check_uri(Resource.URI("v1", "MyResource", "default", "my-resource")) is False
     assert MySpec.check_uri(Resource.URI("v1", "MyResource", None, "my-resource")) is True
+
+
+def test__Resource__get_state() -> None:
+    """
+    Tests the #Resource.state_as() deserializes the state correctly, or, if the #GenericState is passed, returns the
+    original state without copying.
+    """
+
+    class MySpec(Resource.Spec, apiVersion="v1", kind="MyResource", namespaced=False):
+        pass
+
+    @dataclass
+    class MyState(Resource.State):
+        a: int
+
+    resource = Resource.create(
+        Resource.Metadata(
+            name="my-resource",
+            namespace=None,
+        ),
+        MySpec(),
+        {"a": 1},
+    )
+
+    assert resource.get_state(Resource.GenericState) is resource.state
+    assert resource.get_state(MyState) == MyState(a=1)
