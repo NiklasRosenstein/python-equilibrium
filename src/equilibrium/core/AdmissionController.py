@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from equilibrium.core.Resource import GenericResource
 from equilibrium.core.ResourceStore import ResourceStore
 
+__all__ = ["AdmissionController"]
+
 
 class AdmissionController(ABC):
     """Controller to allow or deny admission of resources to the system."""

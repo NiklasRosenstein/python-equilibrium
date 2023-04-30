@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 from equilibrium.core.ResourceStore import ResourceStore
 
+__all__ = ["ResourceController"]
+
 
 class ResourceController(ABC):
     # These are set automatically when the controller is registered to a context.

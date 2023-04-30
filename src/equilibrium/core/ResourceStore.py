@@ -8,6 +8,8 @@ from typing import Iterator, NewType
 from equilibrium.core.Namespace import Namespace
 from equilibrium.core.Resource import GenericResource, Resource
 
+__all__ = ["ResourceStore"]
+
 
 class ResourceStore(ABC):
     """Provides an API for storing and loading resources."""

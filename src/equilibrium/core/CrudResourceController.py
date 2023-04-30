@@ -9,6 +9,8 @@ from equilibrium.core.Resource import GenericResource, Resource
 from equilibrium.core.ResourceController import ResourceController
 from equilibrium.core.ResourceStore import ResourceStore
 
+__all__ = ["CrudResourceController"]
+
 
 class CrudResourceController(ResourceController, AdmissionController, Generic[Resource.T_Spec, Resource.T_State]):
     """

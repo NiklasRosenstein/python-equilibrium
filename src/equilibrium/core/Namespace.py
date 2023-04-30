@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from equilibrium.core.Resource import Resource
 
-DEFAULT_NAMESPACE = "default"
+__all__ = ["Namespace"]
 
 
 @dataclass

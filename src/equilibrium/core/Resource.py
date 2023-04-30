@@ -9,6 +9,8 @@ import databind.json
 from databind.json.settings import JsonConverter
 from typing_extensions import Self  # 3.11+
 
+__all__ = ["Resource", "match_labels"]
+
 T = TypeVar("T")
 
 VALID_IDENTIFIER_REGEX = r"^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$"
