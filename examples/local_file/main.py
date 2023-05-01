@@ -70,7 +70,7 @@ class LocalFileController(
         return resource
 
 
-ctx = Context.with_json_backend("data")
+ctx = Context.create(Context.JsonBackend("data"))
 ctx.register_resource_type(LocalFile)
 ctx.register_controller(LocalFileController())
 ctx.load_manifest(Path(__file__).parent / "manifest.yaml")

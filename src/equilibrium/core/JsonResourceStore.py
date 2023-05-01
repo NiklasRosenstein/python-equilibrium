@@ -37,7 +37,7 @@ class JsonResourceStore(ResourceStore):
     def __init__(
         self,
         directory: Path,
-        max_lock_duration: float | None = 5,
+        max_lock_duration: float | None = 5.0,
         gettime: Callable[[], float] = perf_counter,
         make_lock_id: Callable[[], LockID] = lambda: ResourceStore.LockID(str(uuid4())),
     ) -> None:

@@ -5,6 +5,7 @@ An example to illustrate resource serviecs.
 from dataclasses import dataclass
 
 from equilibrium.core.Context import Context
+from equilibrium.core.Namespace import Namespace
 from equilibrium.core.Resource import Resource
 from equilibrium.core.ResourceController import ResourceController
 from equilibrium.core.Service import Service
@@ -28,9 +29,10 @@ class AdderTest(ResourceController):
         print("result is:", adder.add(Add(a=1, b=2)))
 
 
-ctx = Context.with_json_backend("data")
+ctx = Context.create(Context.InMemoryBackend())
 ctx.register_resource_type(Add)
 ctx.register_service(Add.TYPE, Adder())
+ctx.put_resource(Namespace.create_resource("default"))
 ctx.put_resource(Resource.create(Resource.Metadata("default", "onePlusTwo"), Add(a=1, b=2)))
 ctx.register_controller(AdderTest())
 ctx.reconcile_once()

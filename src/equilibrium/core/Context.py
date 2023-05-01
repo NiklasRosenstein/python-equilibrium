@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import atexit
 import logging
+from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, TypeVar
 
 import yaml
@@ -34,9 +37,33 @@ class Context:
 
     resources: ResourceStore
 
+    @dataclass
+    class InMemoryBackend:
+        """Constructor for creating a context with an in-memory backend."""
+
+        max_lock_duration: float | None = 5.0
+
+    @dataclass
+    class JsonBackend:
+        """Constructor for creating a context with a JSON backend."""
+
+        directory: PathLike[str] | str
+        max_lock_duration: float | None = 5.0
+
     @classmethod
-    def with_json_backend(cls, directory: PathLike[str] | str) -> Context:
-        return cls(JsonResourceStore(Path(directory)))
+    def create(cls, backend: InMemoryBackend | JsonBackend) -> Context:
+        match backend:
+            case cls.InMemoryBackend(max_lock_duration):
+                # TODO(@NiklasRosenstein): Actually implement an in-memory backend.
+                tempdir = TemporaryDirectory()
+                logger.debug("using temporary directory for in-memory backend: %r", tempdir.name)
+                atexit.register(tempdir.cleanup)
+                return cls(JsonResourceStore(Path(tempdir.name), max_lock_duration))
+            case cls.JsonBackend(directory, max_lock_duration):
+                logger.debug("using JSON backend: %r", directory)
+                return cls(JsonResourceStore(Path(directory), max_lock_duration))
+            case _:
+                raise TypeError(f"invalid backend type {backend!r}")
 
     def __init__(self, store: ResourceStore, default_namespace_name: str = "default") -> None:
         self._resource_controllers: list[ResourceController] = []
