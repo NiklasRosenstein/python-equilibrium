@@ -14,6 +14,7 @@ from equilibrium.core.Namespace import Namespace
 from equilibrium.core.Resource import GenericResource, Resource
 from equilibrium.core.ResourceController import ResourceController
 from equilibrium.core.ResourceStore import ResourceStore
+from equilibrium.core.Service import Service
 
 __all__ = ["Context"]
 T = TypeVar("T")
@@ -42,6 +43,7 @@ class Context:
         self._admission_controllers: list[AdmissionController] = []
         self._resource_types: dict[str, dict[str, type[Resource.Spec]]] = {}
         self._default_namespace_name = default_namespace_name
+        self._services: dict[Resource.Type, dict[Service.Id, Service]] = {}
         self.resources = store
         self.register_resource_type(Namespace)
 
@@ -50,10 +52,36 @@ class Context:
 
     def register_controller(self, controller: ResourceController | AdmissionController) -> None:
         controller.resources = proxy(lambda: self.resources)  # type: ignore[assignment]
+        controller.services = _ContextServiceProvider(self)
         if isinstance(controller, AdmissionController):
             self._admission_controllers.append(controller)
         if isinstance(controller, ResourceController):
             self._resource_controllers.append(controller)
+
+    def register_service(self, resource_type: Resource.Type, service: Service) -> None:
+        """
+        Register a service to the controller for the given resource type.
+        """
+
+        service.resources = proxy(lambda: self.resources)  # type: ignore[assignment]
+        service.services = _ContextServiceProvider(self)
+        services = self._services.setdefault(resource_type, {})
+        if service.SERVICE_ID in services:
+            raise ValueError(
+                f"Service '{service.SERVICE_ID}' is already registered for resource type {resource_type!r}"
+            )
+        services[service.SERVICE_ID] = service
+
+    def get_service(self, resource_type: Resource.Type, service_type: type[Service.T]) -> Service.T | None:
+        """
+        Find a service registered for the given resource type and service type.
+        """
+
+        services = self._services.get(resource_type)
+        service = services.get(service_type.SERVICE_ID) if services else None
+        if service is not None and not isinstance(service, service_type):
+            raise RuntimeError(f"Service '{service_type.SERVICE_ID}' is not of type {service_type!r}")
+        return service
 
     def put_resource(self, resource: Resource[Any]) -> GenericResource:
         """
@@ -138,3 +166,11 @@ class Context:
         for controller in self._resource_controllers:
             logger.debug(f"Reconciling {controller!r}")
             controller.reconcile_once()
+
+
+class _ContextServiceProvider(Service.Provider):
+    def __init__(self, context: Context) -> None:
+        self._context = context
+
+    def get(self, resource_type: Resource.Type, service_type: type[Service.T]) -> Service.T | None:
+        return self._context.get_service(resource_type, service_type)

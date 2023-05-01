@@ -3,13 +3,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
-from typing import Any, ClassVar, Generic, Literal, Mapping, Protocol, TypeVar, cast, overload
+from typing import Any, ClassVar, Generic, Literal, Mapping, Protocol, Type as _Type, TypeVar, cast, overload
 
 import databind.json
 from databind.json.settings import JsonConverter
 from typing_extensions import Self  # 3.11+
 
-__all__ = ["Resource", "match_labels"]
+__all__ = ["Resource", "match_labels", "validate_api_version", "validate_identifier"]
 
 T = TypeVar("T")
 
@@ -44,13 +44,13 @@ class Resource(Generic[T]):
         API_VERSION: ClassVar[str] = ""
         KIND: ClassVar[str] = ""
         NAMESPACED: ClassVar[bool] = False
-        TYPE: ClassVar[str] = ""
+        TYPE: ClassVar[Resource.Type] = None  # type: ignore[assignment]
 
         def __init_subclass__(cls, apiVersion: str, kind: str, namespaced: bool = True) -> None:
             cls.API_VERSION = apiVersion
             cls.KIND = kind
             cls.NAMESPACED = namespaced
-            cls.TYPE = f"{apiVersion}/{kind}"
+            cls.TYPE = Resource.Type(apiVersion, kind)
             return super().__init_subclass__()
 
         @overload
@@ -137,16 +137,52 @@ class Resource(Generic[T]):
                 raise ValueError(f"invalid Resource.URI: {s!r}")
             return Resource.URI(apiVersion, kind, namespace, name)
 
+        @property
+        def type(self) -> Resource.Type:
+            return Resource.Type(self.apiVersion, self.kind)
+
+        @property
+        def locator(self) -> Resource.Locator:
+            return Resource.Locator(self.namespace, self.name)
+
+    @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
+    @dataclass(frozen=True)
+    class Type:
+        apiVersion: str
+        kind: str
+
+        def __post_init__(self) -> None:
+            validate_api_version(self.apiVersion, "apiVersion")
+            validate_identifier(self.kind, "kind")
+
+        def __str__(self) -> str:
+            return f"{self.apiVersion}/{self.kind}"
+
+        @classmethod
+        def of(cls, s: str) -> Resource.Type:
+            apiVersion, kind = s.rpartition("/")[::2]
+            return cls(apiVersion, kind)
+
     @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
     @dataclass(frozen=True)
     class Locator:
-        name: str
         namespace: str | None
+        name: str
+
+        def __post_init__(self) -> None:
+            if self.namespace is not None:
+                validate_identifier(self.namespace, "namespace")
+            validate_identifier(self.name, "name")
 
         def __str__(self) -> str:
             if self.namespace is None:
                 return self.name
             return f"{self.namespace}/{self.name}"
+
+        @classmethod
+        def of(cls, s: str) -> Resource.Locator:
+            namespace, name = s.rpartition("/")[::2]
+            return cls(namespace or None, name)
 
     @dataclass(frozen=True)
     class Metadata:
@@ -204,6 +240,14 @@ class Resource(Generic[T]):
         return f"Resource(apiVersion={self.apiVersion!r}, kind={self.kind!r}, metadata={self.metadata!r})"
 
     @property
+    def type(self) -> Type:
+        return Resource.Type(self.apiVersion, self.kind)
+
+    @property
+    def locator(self) -> Locator:
+        return Resource.Locator(self.metadata.namespace, self.metadata.name)
+
+    @property
     def uri(self) -> URI:
         return Resource.URI(self.apiVersion, self.kind, self.metadata.namespace, self.metadata.name)
 
@@ -219,7 +263,7 @@ class Resource(Generic[T]):
             self.state,
         )
 
-    def into(self, spec_type: type[U_Spec]) -> Resource[U_Spec]:
+    def into(self, spec_type: _Type[U_Spec]) -> Resource[U_Spec]:
         if spec_type.API_VERSION != self.apiVersion:
             raise ValueError(
                 f"{self.apiVersion=!r} does not match {spec_type.__name__}.apiVersion={spec_type.API_VERSION!r}"
@@ -240,11 +284,11 @@ class Resource(Generic[T]):
 
     @overload
     @staticmethod
-    def of(payload: dict[str, Any], spec_type: type[U_Spec]) -> Resource[U_Spec]:
+    def of(payload: dict[str, Any], spec_type: _Type[U_Spec]) -> Resource[U_Spec]:
         ...
 
     @staticmethod
-    def of(payload: dict[str, Any], spec_type: type[U_Spec] | None = None) -> Resource[Any]:
+    def of(payload: dict[str, Any], spec_type: _Type[U_Spec] | None = None) -> Resource[Any]:
         return databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type])  # type: ignore[valid-type]  # noqa: E501
 
     @staticmethod
@@ -254,14 +298,14 @@ class Resource(Generic[T]):
         return resource
 
     @overload
-    def get_state(self, state_type: type[T_State]) -> T_State:
+    def get_state(self, state_type: _Type[T_State]) -> T_State:
         ...
 
     @overload
-    def get_state(self, state_type: type[GenericState]) -> GenericState:
+    def get_state(self, state_type: _Type[GenericState]) -> GenericState:
         ...
 
-    def get_state(self, state_type: type[U_State] | type[GenericState]) -> U_State | GenericState:
+    def get_state(self, state_type: _Type[U_State] | _Type[GenericState]) -> U_State | GenericState:
         if self.state is None:
             raise ValueError("resource has no state")
         if state_type == Resource.GenericState or state_type is dict:
@@ -269,7 +313,7 @@ class Resource(Generic[T]):
         else:
             return cast(U_State, databind.json.load(self.state, state_type))
 
-    def set_state(self, state_type: type[T_State], state: T_State) -> None:
+    def set_state(self, state_type: _Type[T_State], state: T_State) -> None:
         self.state = cast(Resource.GenericState, databind.json.dump(state, state_type))
 
 

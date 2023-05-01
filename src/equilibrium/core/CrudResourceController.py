@@ -27,7 +27,10 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     Deleted = Status.Deleted
 
     def __init_subclass__(
-        cls, spec_type: type[Resource.T_Spec], state_type: type[Resource.T_State], **kwargs: Any
+        cls,
+        spec_type: type[Resource.T_Spec],
+        state_type: type[Resource.T_State],
+        **kwargs: Any,
     ) -> None:
         super().__init_subclass__(**kwargs)
         cls._logger_name = f"{cls.__module__}.{cls.__name__}"
