@@ -35,9 +35,22 @@ def validate_api_version(s: str, name: str) -> None:
 
 @dataclass
 class Resource(Generic[T]):
+    class Error(Exception):
+        pass
+
     @dataclass(frozen=True)
-    class NotFound(Exception):
+    class NotFound(Error):
         uri: Resource.URI
+
+    @dataclass(frozen=True)
+    class ValidationFailed(Error):
+        uri: Resource.URI
+        exc: Exception
+
+    @dataclass
+    class AdmissionFailed(Error):
+        uri: Resource.URI
+        exc: Exception
 
     class Spec(Dataclass):
         __dataclass_fields__: Mapping[str, Any]
@@ -95,6 +108,13 @@ class Resource(Generic[T]):
 
         def as_resource(self, metadata: Resource.Metadata) -> Resource[Self]:
             return Resource.create(metadata, self)
+
+        def validate(self) -> None:
+            """
+            Validate the resource spec. This method is practically an admission controller and can raise any
+            exception to prevent the resource from being committed to the database. The default implementation
+            does nothing.
+            """
 
     class State(Dataclass):
         __dataclass_fields__: Mapping[str, Any]

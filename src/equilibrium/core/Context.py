@@ -83,7 +83,7 @@ class Context:
             raise RuntimeError(f"Service '{service_type.SERVICE_ID}' is not of type {service_type!r}")
         return service
 
-    def put_resource(self, resource: Resource[Any]) -> GenericResource:
+    def put_resource(self, resource: Resource[Any]) -> Resource[Any]:
         """
         Put a resource into the resource store. This will trigger the admission controllers. Any admission controller
         may complain about the resource, mutate it and raise an exception if necessary. This exception will propagate
@@ -104,7 +104,17 @@ class Context:
 
         uri = resource.uri
         resource_spec = self._resource_types[resource.apiVersion][resource.kind]
+
+        # Ensure that we have the resource in its deserialized (i.e. non-generic) form.
+        resource = resource.into(resource_spec)
+
         with self.resources.enter(self.resources.LockRequest.from_uri(uri)) as lock:
+            # Validate the resource spec.
+            try:
+                resource.spec.validate()
+            except Exception as e:
+                raise Resource.ValidationFailed(resource.uri, e) from e
+
             # Give the resource the default namespace.
             if uri.namespace is None and resource_spec.NAMESPACED:
                 resource.metadata = resource.metadata.with_namespace(self._default_namespace_name)
@@ -112,21 +122,25 @@ class Context:
             resource_spec.check_uri(resource.uri, do_raise=True)
 
             # Pass resource through admission controllers.
-            generic_resource = resource.into_generic()
             for controller in self._admission_controllers:
-                new_resource = controller.admit_resource(generic_resource)
+                try:
+                    new_resource = controller.admit_resource(resource)
+                except Exception as e:
+                    raise Resource.AdmissionFailed(resource.uri, e) from e
                 if new_resource.uri != uri:
                     raise RuntimeError(f"Admission controller mutated resource URI (controller: {controller!r})")
-                generic_resource = new_resource
+                if type(new_resource.spec) != type(resource.spec):  # noqa: E721
+                    raise RuntimeError(f"Admission controller mutated resource spec type (controller: {controller!r})")
+                resource = resource
 
             # Inherit the state of an existing resource, if it exists.
             existing_resource = self.resources.get(lock, uri)
-            generic_resource.state = existing_resource.state if existing_resource else None
+            resource.state = existing_resource.state if existing_resource else None
 
             logger.debug("Putting resource '%s'.", uri)
-            self.resources.put(lock, generic_resource)
+            self.resources.put(lock, resource.into_generic())
 
-        return generic_resource
+        return resource
 
     def delete_resource(self, uri: Resource.URI, *, do_raise: bool = True, force: bool = False) -> bool:
         """

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
-from equilibrium.core.Resource import GenericResource
+from equilibrium.core.Resource import Resource
 from equilibrium.core.ResourceStore import ResourceStore
 from equilibrium.core.Service import Service
 
@@ -18,6 +19,6 @@ class AdmissionController(ABC):
         return f"{self.__class__.__name__}()"
 
     @abstractmethod
-    def admit_resource(self, resource: GenericResource) -> GenericResource:
+    def admit_resource(self, resource: Resource[Any]) -> Resource[Any]:
         """An arbitrary exception may be raised to deny the resource."""
         ...
