@@ -13,10 +13,10 @@ classifiers = []
 keywords = []
 
 [tool.poetry.urls]
-# "Bug Tracker" = ""
+"Bug Tracker" = "https://github.com/NiklasRosenstein/python-equilibrium/issues"
 # Documentation = ""
 # Homepage = ""
-# Repository = ""
+Repository = "https://github.com/NiklasRosenstein/python-equilibrium"
 
 [tool.poetry.dependencies]
 python = "^3.10"
