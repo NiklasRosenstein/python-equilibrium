@@ -19,6 +19,15 @@ jobs:
     - run: slap install -vv --no-venv-check
     - run: slap test
 
+  example-local-file:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: python-slap/slap-cli@gha/install/v1
+    - run: slap install -vv --no-venv-check
+    - run: python examples/local_file/main.py
+    - run: cat /tmp/foobar.txt | grep "Hello World!"
+
   update-changelog:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
