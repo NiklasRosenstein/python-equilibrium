@@ -20,6 +20,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     spec_type: type[Resource.T_Spec]
     state_type: type[Resource.T_State]
     _logger_name: ClassVar[str]
+    log: Logger
 
     class Status(Enum):
         Deleted = "deleted"
@@ -37,13 +38,14 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         cls.spec_type = spec_type
         cls.state_type = state_type
 
-    @abstractmethod
     def admit(self, resource: Resource[Resource.T_Spec]) -> Resource[Resource.T_Spec]:
         """
         Test for the admission of the resource into the system. A potentially modified version is returned. An
         exception shall be raised if the resource cannot be admitted to the system. If the previous spec of the
         resource is of interest, it can be retrieved with the #resources manager.
         """
+
+        return resource
 
     @abstractmethod
     def create(self, resource: Resource[Resource.T_Spec]) -> Resource.T_State:
@@ -146,10 +148,10 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     # ResourceController
 
     def reconcile_once(self) -> None:
-        log = self._get_logger(None)
+        self.log = self._get_logger(None)
 
         namespaces = self.resources.namespaces()
-        log.info(
+        self.log.info(
             "Reconciling resources of type '%s' (namespaces: %r)",
             self.spec_type.TYPE,
             {ns.metadata.name for ns in namespaces},
@@ -164,7 +166,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                 )
                 resource_uris = self.resources.search(lock, search_request)
 
-            log.debug(
+            self.log.debug(
                 "Found %d resources of type '%s' in namespace '%s'.",
                 len(resource_uris),
                 self.spec_type.TYPE,
@@ -177,9 +179,9 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
 
     # AdmissionController
 
-    def admit_resource(self, resource: GenericResource) -> GenericResource:
+    def admit_resource(self, resource: Resource[Any]) -> Resource[Any]:
         if self.spec_type.check_uri(resource.uri):
-            log = self._get_logger(resource.uri)
-            log.debug("Checking for admittance of resource '%s'.", resource.uri)
-            return self.admit(resource.into(self.spec_type)).into_generic()
+            self.log = self._get_logger(resource.uri)
+            self.log.debug("Checking for admittance of resource '%s'.", resource.uri)
+            return self.admit(resource.into(self.spec_type))
         return resource

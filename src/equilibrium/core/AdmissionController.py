@@ -18,7 +18,6 @@ class AdmissionController(ABC):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
-    @abstractmethod
     def admit_resource(self, resource: Resource[Any]) -> Resource[Any]:
         """An arbitrary exception may be raised to deny the resource."""
-        ...
+        return resource
