@@ -5,7 +5,7 @@ from logging import Logger
 from typing import Any, ClassVar, Generic
 
 from equilibrium.core.AdmissionController import AdmissionController
-from equilibrium.core.Resource import GenericResource, Resource
+from equilibrium.core.Resource import Resource
 from equilibrium.core.ResourceController import ResourceController
 from equilibrium.core.ResourceStore import ResourceStore
 

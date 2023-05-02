@@ -31,6 +31,7 @@ flake8 = "*"
 isort = "*"
 mypy = "*"
 pytest = "*"
+pycln = "^2.1.3"
 
 [tool.slap]
 typed = true
@@ -42,9 +43,10 @@ pytest = "pytest src/ examples/ -vv"
 black = "black --check src/ examples/"
 isort = "isort --check-only src/ examples/"
 flake8 = "flake8 src/ examples/"
+pycln = "pycln src/ examples/ -c"
 
 [tool.slap.run]
-fmt = "black src/ examples/ && isort src/ examples/"
+fmt = "pycln src/ examples/ && black src/ examples/ && isort src/ examples/"
 
 [tool.mypy]
 python_version = "3.10"
