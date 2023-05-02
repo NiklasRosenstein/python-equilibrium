@@ -32,6 +32,8 @@ isort = "*"
 mypy = "*"
 pytest = "*"
 pycln = "^2.1.3"
+pyterprise = "^0.0.15"
+rich = "^13.3.5"
 
 [tool.slap]
 typed = true
