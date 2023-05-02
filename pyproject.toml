@@ -38,6 +38,9 @@ rich = "^13.3.5"
 [tool.slap]
 typed = true
 
+[tool.slap.release]
+branch = "main"
+
 [tool.slap.test]
 check = "slap check"
 mypy = "dmypy run src/ examples/"
