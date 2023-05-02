@@ -2,13 +2,23 @@
 An example reconciler for managing Terraform Cloud/Enterprise workspaces.
 """
 
+import logging
+import os
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
+import pyterprise  # type: ignore[import]
+import pyterprise.exceptions  # type: ignore[import]
+import pyterprise.organization  # type: ignore[import]
+import pyterprise.workspace  # type: ignore[import]
+from rich.logging import RichHandler
+
+from equilibrium.core.Context import Context
 from equilibrium.core.CrudResourceController import CrudResourceController
+from equilibrium.core.Namespace import Namespace
 from equilibrium.core.Resource import Resource
 
 TERRAFORM_VERSION_REGEX = r"^(latest|[0-9]+\.[0-9]+\.[0-9]+)$"
@@ -134,10 +144,18 @@ class Provider:
 
 
 @dataclass
+class TfeOrganization(Resource.Spec, apiVersion="example.com/v1", kind="TfeOrganization"):
+    pass
+
+
+@dataclass
 class TfeWorkspace(Resource.Spec, apiVersion="example.com/v1", kind="TfeWorkspace"):
     #: The name of the workspace. If this is not specified, it will be derived from the name and namespace of
     #: the resource, or the name that is already given to the workspace.
     name: str | None = None
+
+    #: The organization to create the Terraform workspace in.
+    organization: str | None = None
 
     #: Description of the Terraform workspace.
     description: str = ""
@@ -220,6 +238,14 @@ class TfeWorkspace(Resource.Spec, apiVersion="example.com/v1", kind="TfeWorkspac
     #: provider of workspace variables. This can only be set for the remote execution mode and API-driven
     #: workflow.
     providersFrom: list[ProviderFrom] = field(default_factory=list)
+
+    #: Allow taking ownership of an existing workspace instead of erroring when the workspace already exists.
+    takeOwnership: bool = False
+
+    def get_working_directory(self) -> str | None:
+        if self.vcsRepo is None:
+            return None
+        return self.vcsRepo.partition("//")[-1].partition("?")[0] or None
 
     # Resource.Spec
 
@@ -318,15 +344,117 @@ class TfeWorkspaceState(Resource.State):
         #: An error occurred while planning, applying or destroying.
         Errored = "Errored"
 
-    lastUpdatedAt: datetime | None = None
+    organization: str
+    workspaceName: str
+    workspaceId: str | None
     status: Status | None = None
-    workspaceId: str | None = None
+    lastUpdatedAt: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+@dataclass
 class TfeWorkspaceController(
-    CrudResourceController[TfeWorkspace, TfeWorkspaceState], spec_type=TfeWorkspace, state_type=TfeWorkspaceState
+    CrudResourceController[TfeWorkspace, TfeWorkspaceState],
+    spec_type=TfeWorkspace,
+    state_type=TfeWorkspaceState,
 ):
-    pass
+    token: str
+    url: str = "https://app.terraform.io"
+    defaultOrganization: str | None = None
+    defaultTags: list[str] = field(default_factory=lambda: ["equilibrium-managed"])
+
+    def __post_init__(self) -> None:
+        self._client = pyterprise.Client()
+        self._client.init(token=self.token, url=self.url)
+
+    def _get_workspace_name(self, resource: Resource[TfeWorkspace]) -> str:
+        return resource.spec.name or f"{resource.metadata.namespace}-{resource.metadata.name}"
+
+    def _get_organization(self, name: str | None) -> pyterprise.organization.Organization:
+        name = name or self.defaultOrganization
+        if name is None:
+            orgs = self._client.list_organizations()
+            if len(orgs) != 1:
+                raise ValueError("No organization specified and multiple organizations available.")
+            return orgs[0]
+        return self._client.set_organization(name)
+
+    def _get_tf_version(self, terraform_version: str | None) -> str:
+        # TODO(@NiklasRosenstein): Query TFE for available TF versions.
+        return "1.4.5"  # Latest we know today
+
+    def _update_workspace(self, workspace: pyterprise.workspace.Workspace, spec: TfeWorkspace) -> None:
+        # Check if the workspace tags need updating.
+        # TODO(@NiklasRosenstein): Not supported by Pyterprise.
+        # tags = set(spec.tags + self.defaultTags)
+        # if tags != set(workspace.tags):
+        #     pass
+        pass
+
+    def _update_state(self, workspace: pyterprise.workspace.Workspace, state: TfeWorkspaceState) -> None:
+        state.organization = workspace.organization_name
+        state.workspaceId = workspace.id
+        state.lastUpdatedAt = datetime.now(timezone.utc)
+        # TODO(@NiklasRosenstein): Set state status
+
+    # CrudResourceController
+
+    def create(self, resource: Resource[TfeWorkspace]) -> TfeWorkspaceState:
+        spec = resource.spec
+
+        organization = self._get_organization(spec.organization)
+        workspace_name = self._get_workspace_name(resource)
+        try:
+            workspace: pyterprise.workspace.Workspace = organization.create_workspace(
+                name=workspace_name,
+                tf_version=self._get_tf_version(spec.terraformVersion),
+                working_directory="",
+                auto_apply=False,
+                queue_all_runs=False,
+                vcs_repo=None,
+                trigger_prefixes=[],
+            )
+        except pyterprise.exceptions.APIException:
+            if spec.takeOwnership:
+                self.log.info("Taking ownership of existing workspace '%s'", workspace_name)
+                workspace = organization.get_workspace(workspace_name)
+            else:
+                self.log.info("Workspace '%s' already exists", workspace_name)
+                return TfeWorkspaceState(
+                    organization.name,
+                    workspace_name,
+                    None,
+                    status=TfeWorkspaceState.Status.Invalid,
+                )
+        try:
+            self._update_workspace(workspace, spec)
+            state = TfeWorkspaceState(organization.name, workspace_name, workspace.id)
+            self._update_state(workspace, state)
+            return state
+        except Exception:
+            self.log.exception("An unhandled exception occurred creating workspace '%s'", workspace_name)
+            return TfeWorkspaceState(
+                organization.name,
+                workspace_name,
+                None,
+                status=TfeWorkspaceState.Status.Invalid,
+            )
+
+    def read(self, state: TfeWorkspaceState) -> TfeWorkspaceState | CrudResourceController.Status:
+        organization = self._get_organization(state.organization)
+        workspace = organization.get_workspace(state.workspaceName)
+        self._update_state(workspace, state)
+        return state
+
+    def update(self, resource: Resource[TfeWorkspace], state: TfeWorkspaceState) -> TfeWorkspaceState:
+        organization = self._get_organization(state.organization)
+        workspace = organization.get_workspace(state.workspaceName)
+        self._update_workspace(workspace, resource.spec)
+        self._update_state(workspace, state)
+        return state
+
+    def delete(self, state: TfeWorkspaceState) -> TfeWorkspaceState | CrudResourceController.Status:
+        self.log.info("Pending deletion of TFE workspace: ", state.organization, state.workspaceId)
+        return state
 
 
 class TfeResourceVariablesService(ABC):
@@ -339,3 +467,28 @@ class TfeResourceProviderService(ABC):
     @abstractmethod
     def get_provider(self, config: ProviderFrom) -> Provider:
         raise NotImplementedError(f"{self.__class__.__name__}.get_provider() is not implemented.")
+
+
+def main() -> None:
+    logging.basicConfig(
+        level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)]
+    )
+    ctx = Context.create(Context.JsonBackend("data"))
+    ctx.register_resource_type(TfeWorkspace)
+    ctx.register_controller(TfeWorkspaceController(token=os.environ["TFE_TOKEN"]))
+    ctx.put_resource(Namespace.create_resource("default"))
+    ctx.put_resource(
+        Resource.create(
+            Resource.Metadata("default", "test"),
+            TfeWorkspace(
+                moduleSource="hashicorp/consul/aws",
+                moduleVersion="0.0.1",
+                takeOwnership=True,
+            ),
+        )
+    )
+    ctx.reconcile_once()
+
+
+if __name__ == "__main__":
+    main()
