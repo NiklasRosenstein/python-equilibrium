@@ -100,7 +100,11 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                 else:
                     current_state = response
 
-            if current_state is None:
+            if current_state is None and resource.deletion_marker:
+                log.debug(
+                    "Resource '%s' is marked for deletion and has no current state, skipping reconciliation.", uri
+                )
+            elif current_state is None:
                 if resource.state is None:
                     log.debug("Resource '%s' is new, creating it.", uri)
                 else:

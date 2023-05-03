@@ -268,6 +268,7 @@ class ResourceRegistry:
             elif resource.deletion_marker is None:
                 logger.info("Marking resource '%s' as deleted.", uri)
                 resource.deletion_marker = Resource.DeletionMarker()
+                self._store.put(lock, resource)
             else:
                 logger.info("Resource '%s' is already marked as deleted.", uri)
             return True

@@ -3,3 +3,9 @@ id = "ce10bbc3-8d63-4e64-b7c0-6eb249de3105"
 type = "breaking change"
 description = "Rework `Context` class, make it a composite of various registries (i.e. `ControllerRegistry`, `ResourceTypeRegistry`, `ServiceRegistry` and `ResourceRegistry`"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "6a03800f-ec32-492b-a08a-43e964a3c0a1"
+type = "fix"
+description = "Fixed an issue in `CrudResourceController.reconcile()` that would cause a resource without state to be created even if the resource had no state; and fixed `ResourceRegistry.delete()` not committing the updated resource with a deletion marker to the store."
+author = "@NiklasRosenstein"
