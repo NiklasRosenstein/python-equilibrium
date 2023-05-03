@@ -22,7 +22,6 @@ Repository = "https://github.com/NiklasRosenstein/python-equilibrium"
 python = "^3.10"
 "databind.json" = "^4.2.5"
 pyyaml = "^6.0"
-"nr.proxy" = "^1.1.1"
 types-pyyaml = "^6.0.12.9"
 
 [tool.poetry.dev-dependencies]

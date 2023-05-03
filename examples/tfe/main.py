@@ -474,10 +474,10 @@ def main() -> None:
         level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)]
     )
     ctx = Context.create(Context.JsonBackend("data"))
-    ctx.register_resource_type(TfeWorkspace)
-    ctx.register_controller(TfeWorkspaceController(token=os.environ["TFE_TOKEN"]))
-    ctx.put_resource(Namespace.create_resource("default"))
-    ctx.put_resource(
+    ctx.resource_types.register(TfeWorkspace)
+    ctx.controllers.register(TfeWorkspaceController(token=os.environ["TFE_TOKEN"]))
+    ctx.resources.put(Namespace.create_resource("default"))
+    ctx.resources.put(
         Resource.create(
             Resource.Metadata("default", "test"),
             TfeWorkspace(
@@ -487,7 +487,7 @@ def main() -> None:
             ),
         )
     )
-    ctx.reconcile_once()
+    ctx.controllers.reconcile()
 
 
 if __name__ == "__main__":

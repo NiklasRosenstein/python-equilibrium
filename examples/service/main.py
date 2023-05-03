@@ -23,16 +23,16 @@ class Adder(Service, serviceId="example.com/v1/Adder"):
 
 
 class AdderTest(ResourceController):
-    def reconcile_once(self) -> None:
+    def reconcile(self) -> None:
         adder = self.services.get(Add.TYPE, Adder)
         assert adder is not None
         print("result is:", adder.add(Add(a=1, b=2)))
 
 
 ctx = Context.create(Context.InMemoryBackend())
-ctx.register_resource_type(Add)
-ctx.register_service(Add.TYPE, Adder())
-ctx.put_resource(Namespace.create_resource("default"))
-ctx.put_resource(Resource.create(Resource.Metadata("default", "onePlusTwo"), Add(a=1, b=2)))
-ctx.register_controller(AdderTest())
-ctx.reconcile_once()
+ctx.resource_types.register(Add)
+ctx.services.register(Add.TYPE, Adder())
+ctx.resources.put(Namespace.create_resource("default"))
+ctx.resources.put(Resource.create(Resource.Metadata("default", "onePlusTwo"), Add(a=1, b=2)))
+ctx.controllers.register(AdderTest())
+ctx.controllers.reconcile()

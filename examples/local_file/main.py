@@ -71,8 +71,12 @@ class LocalFileController(
 
 
 ctx = Context.create(Context.JsonBackend("data"))
-ctx.register_resource_type(LocalFile)
-ctx.register_controller(LocalFileController())
+ctx.resource_types.register(LocalFile)
+ctx.controllers.register(LocalFileController())
 ctx.load_manifest(Path(__file__).parent / "manifest.yaml")
-# ctx.delete_resource(LocalFile.uri("default", "local-file"), do_raise=False)
-ctx.reconcile_once()
+ctx.resources.delete(LocalFile.uri("default", "local-file"), do_raise=False)
+
+for uri in ctx.resources.search():
+    print(uri)
+
+ctx.controllers.reconcile()

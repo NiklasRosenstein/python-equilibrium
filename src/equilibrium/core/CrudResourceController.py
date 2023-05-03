@@ -147,7 +147,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
 
     # ResourceController
 
-    def reconcile_once(self) -> None:
+    def reconcile(self) -> None:
         self.log = self._get_logger(None)
 
         namespaces = self.resources.namespaces()

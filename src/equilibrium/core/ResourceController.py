@@ -15,5 +15,5 @@ class ResourceController(ABC):
         return f"{self.__class__.__name__}()"
 
     @abstractmethod
-    def reconcile_once(self) -> None:
+    def reconcile(self) -> None:
         ...
