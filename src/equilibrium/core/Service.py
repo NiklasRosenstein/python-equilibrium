@@ -26,7 +26,7 @@ class Service(ABC):
     #: A globally unique identifier of the service type. The identifier is used to retrieve the service from the
     #: context. This must begin with an apiVersion and end with a kind, separated by a slash. The apiVersion and kind
     #: must be valid DNS subdomains.
-    SERVICE_ID: ClassVar[Id] = Id("")
+    SERVICE_ID: ClassVar[Id]
 
     #: Assigned to the service upon registration to the context.
     resources: ResourceStore

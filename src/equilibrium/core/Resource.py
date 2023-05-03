@@ -54,10 +54,10 @@ class Resource(Generic[T]):
 
     class Spec(Dataclass):
         __dataclass_fields__: Mapping[str, Any]
-        API_VERSION: ClassVar[str] = ""
-        KIND: ClassVar[str] = ""
-        NAMESPACED: ClassVar[bool] = False
-        TYPE: ClassVar[Resource.Type] = None  # type: ignore[assignment]
+        API_VERSION: ClassVar[str]
+        KIND: ClassVar[str]
+        NAMESPACED: ClassVar[bool]
+        TYPE: ClassVar[Resource.Type]
 
         def __init_subclass__(cls, apiVersion: str, kind: str, namespaced: bool = True) -> None:
             cls.API_VERSION = apiVersion
