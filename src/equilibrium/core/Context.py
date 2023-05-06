@@ -69,14 +69,13 @@ class Context:
             case _:
                 raise TypeError(f"invalid backend type {backend!r}")
 
-    def __init__(self, store: ResourceStore, default_namespace_name: str = "default") -> None:
-        self._default_namespace_name = default_namespace_name
+    def __init__(self, store: ResourceStore, default_namespace: str = DEFAULT_NAMESPACE) -> None:
         self.store = store
         self.services = ServiceRegistry(store)
         self.controllers = ControllerRegistry(self.store, self.services)
         self.resource_types = ResourceTypeRegistry()
         self.resource_types.register(Namespace)
-        self.resources = ResourceRegistry(store, self.resource_types, self.controllers)
+        self.resources = ResourceRegistry(store, self.resource_types, self.controllers, default_namespace)
 
     def load_manifest(self, path: PathLike[str] | str) -> list[GenericResource]:
         """
@@ -185,7 +184,7 @@ class ResourceRegistry:
         store: ResourceStore,
         resource_types: ResourceTypeRegistry,
         controllers: ControllerRegistry,
-        default_namespace: str = DEFAULT_NAMESPACE,
+        default_namespace: str,
     ) -> None:
         self._store = store
         self._resource_types = resource_types
