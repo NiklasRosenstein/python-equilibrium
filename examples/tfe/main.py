@@ -16,10 +16,10 @@ import pyterprise.organization  # type: ignore[import]
 import pyterprise.workspace  # type: ignore[import]
 from rich.logging import RichHandler
 
-from equilibrium.core.Context import Context
-from equilibrium.core.CrudResourceController import CrudResourceController
-from equilibrium.core.Namespace import Namespace
-from equilibrium.core.Resource import Resource
+from equilibrium.resource.Context import Context
+from equilibrium.resource.CrudResourceController import CrudResourceController
+from equilibrium.resource.Namespace import Namespace
+from equilibrium.resource.Resource import Resource
 
 TERRAFORM_VERSION_REGEX = r"^(latest|[0-9]+\.[0-9]+\.[0-9]+)$"
 TERRAFORM_TAG_REGEX = r"^[a-zA-Z0-9\-\:]+$"

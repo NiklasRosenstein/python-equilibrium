@@ -11,9 +11,9 @@ from uuid import uuid4
 
 import databind.json
 
-from equilibrium.core.Namespace import Namespace
-from equilibrium.core.Resource import GenericResource, Resource, match_labels
-from equilibrium.core.ResourceStore import ResourceStore
+from equilibrium.resource.Namespace import Namespace
+from equilibrium.resource.Resource import GenericResource, Resource, match_labels
+from equilibrium.resource.ResourceStore import ResourceStore
 
 logger = getLogger(__name__)
 

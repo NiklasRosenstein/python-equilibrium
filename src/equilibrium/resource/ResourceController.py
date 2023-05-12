@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from equilibrium.core.ResourceStore import ResourceStore
-from equilibrium.core.Service import Service
+from equilibrium.resource.ResourceStore import ResourceStore
+from equilibrium.resource.Service import Service
 
 __all__ = ["ResourceController"]
 

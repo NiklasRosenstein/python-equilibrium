@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from equilibrium.core.Resource import Resource
+from equilibrium.resource.Resource import Resource
 
 __all__ = ["Namespace"]
 

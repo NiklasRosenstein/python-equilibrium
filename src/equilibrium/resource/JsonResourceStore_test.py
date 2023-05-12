@@ -5,9 +5,9 @@ from typing import Iterator
 
 import pytest
 
-from equilibrium.core.JsonResourceStore import JsonResourceStore
-from equilibrium.core.Namespace import Namespace
-from equilibrium.core.Resource import Resource
+from equilibrium.resource.JsonResourceStore import JsonResourceStore
+from equilibrium.resource.Namespace import Namespace
+from equilibrium.resource.Resource import Resource
 
 LockID = JsonResourceStore.LockID
 

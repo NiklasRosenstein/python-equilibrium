@@ -10,13 +10,13 @@ from typing import Any, TypeVar
 
 import yaml
 
-from equilibrium.core.AdmissionController import AdmissionController
-from equilibrium.core.JsonResourceStore import JsonResourceStore
-from equilibrium.core.Namespace import Namespace
-from equilibrium.core.Resource import GenericResource, Resource
-from equilibrium.core.ResourceController import ResourceController
-from equilibrium.core.ResourceStore import ResourceStore
-from equilibrium.core.Service import Service
+from equilibrium.resource.AdmissionController import AdmissionController
+from equilibrium.resource.JsonResourceStore import JsonResourceStore
+from equilibrium.resource.Namespace import Namespace
+from equilibrium.resource.Resource import GenericResource, Resource
+from equilibrium.resource.ResourceController import ResourceController
+from equilibrium.resource.ResourceStore import ResourceStore
+from equilibrium.resource.Service import Service
 
 __all__ = ["Context"]
 T = TypeVar("T")

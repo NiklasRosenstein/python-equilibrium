@@ -15,3 +15,9 @@ id = "55409234-dc7f-468b-8035-4025b1cc0bac"
 type = "feature"
 description = "Add `Signature` type, remove `RulesGraph.reduce()` but add `RulesGraph.find_path()`"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "b579594b-ad1f-4d23-8aae-262e71f331ac"
+type = "breaking change"
+description = "Rename `equilibrium.core` to `equilibrium.resource`"
+author = "@NiklasRosenstein"
