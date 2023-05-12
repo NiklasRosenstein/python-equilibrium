@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Any, ClassVar, Iterable, Iterator, Sequence, TypeVar
+from typing import Any, ClassVar, Iterable, Iterator, TypeVar
 
 from equilibrium.rules.Cache import Cache
 from equilibrium.rules.Executor import Executor
@@ -21,11 +21,11 @@ class RulesEngine:
     def __init__(
         self,
         rules: Iterable[Rule] | RulesGraph,
-        subjects: Sequence[Any] | None = None,
+        subjects: Params.InitType | None = None,
         executor: Executor | None = None,
     ) -> None:
         self.graph = RulesGraph(rules)
-        self.subjects = Params(*subjects or ())
+        self.subjects = Params(subjects or ())
         self.executor = executor or Executor.simple(Cache.memory())
 
     _current_engine_stack: ClassVar[list[RulesEngine]] = []
@@ -62,7 +62,7 @@ class RulesEngine:
         for rule in rules:
             inputs = self.subjects.filter(rule.input_types) | params.filter(rule.input_types)
             output = self.executor.execute(rule, inputs, self)
-            params = params | Params(output)
+            params = params | Params({rule.output_type: output})
 
         assert isinstance(output, output_type), f"Expected {output_type}, got {type(output)}"
         return output
@@ -70,9 +70,16 @@ class RulesEngine:
 
 def get(output_type: type[T], *inputs: object) -> T:
     """
-    Delegate to the engine to retrieve the specified output type given the input parameters.
+    Delegate to the engine to retrieve the specified output type given the input parameters. If the first argument
+    is a dictionary, it will be used as the input parameters and no arguments can follow.
     """
 
     engine = RulesEngine.current()
 
-    return engine.get(output_type, Params(*inputs))
+    if inputs and isinstance(inputs[0], dict):
+        assert len(inputs) == 1, "No arguments allowed after dictionary"
+        params = Params(inputs[0])
+    else:
+        params = Params(inputs)
+
+    return engine.get(output_type, params)

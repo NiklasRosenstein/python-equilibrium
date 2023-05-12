@@ -42,13 +42,13 @@ def test__RulesEngine__can_cache_properly(cache_impl: Cache, is_cached: bool) ->
 
     engine = RulesEngine(list(collect_rules()), [], executor=Executor.simple(cache=cache_impl))
 
-    assert engine.get(Fibonacci, Params(0)).n == 0
-    assert engine.get(Fibonacci, Params(3)).n == 2
-    assert engine.get(Fibonacci, Params(4)).n == 3
-    assert engine.get(Fibonacci, Params(5)).n == 5
-    assert engine.get(Fibonacci, Params(6)).n == 8
+    assert engine.get(Fibonacci, Params([0])).n == 0
+    assert engine.get(Fibonacci, Params([3])).n == 2
+    assert engine.get(Fibonacci, Params([4])).n == 3
+    assert engine.get(Fibonacci, Params([5])).n == 5
+    assert engine.get(Fibonacci, Params([6])).n == 8
     assert num_invokations == 7 if is_cached else 55
-    assert engine.get(Fibonacci, Params(7)).n == 13
+    assert engine.get(Fibonacci, Params([7])).n == 13
     assert num_invokations == 8 if is_cached else 96
 
 
@@ -71,9 +71,9 @@ def test__RulesEngine__picks_correct_rule_for_same_output() -> None:
         subjects=[],
     )
 
-    assert engine.get(int, Params("42")) == 42
-    assert engine.get(int, Params(True)) == 1
-    assert engine.get(int, Params(False)) == 0
+    assert engine.get(int, Params(["42"])) == 42
+    assert engine.get(int, Params([True])) == 1
+    assert engine.get(int, Params([False])) == 0
 
 
 def test__RulesEngine__injects_subjects() -> None:
@@ -94,4 +94,4 @@ def test__RulesEngine__injects_subjects() -> None:
     )
 
     assert engine.get(int, Params()) == 42
-    assert engine.get(int, Params(CustomType(33))) == 33
+    assert engine.get(int, Params([CustomType(33)])) == 33

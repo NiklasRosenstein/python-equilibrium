@@ -63,3 +63,9 @@ id = "c8c21750-ed20-4ec0-8143-97fec3655c7b"
 type = "breaking change"
 description = "Rename `equilibrium.rulesengine` to `equilibrium.rules`"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "33cd2799-40d4-40e2-b0af-c188c342e741"
+type = "feature"
+description = "`Params()` constructor now accepts a mapping that allows passing explicit runtime type information with a parameter. It now accepts instances of parameterizable generic types only if the runtime type information is given."
+author = "@NiklasRosenstein"
