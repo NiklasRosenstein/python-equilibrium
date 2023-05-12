@@ -5,7 +5,7 @@ import sys
 from collections import ChainMap
 from functools import wraps
 from itertools import chain
-from typing import Any, Callable, Iterator, Mapping, TypeVar, overload
+from typing import Any, Callable, Mapping, TypeVar, overload
 from uuid import uuid4
 
 from typeapi import get_annotations, type_repr
@@ -68,17 +68,17 @@ def rule(func: Callable[..., Any]) -> Rule:
 
 
 @overload
-def collect_rules(*, globals: Mapping[str, Any]) -> Iterator[Rule]:
+def collect_rules(*, globals: Mapping[str, Any]) -> list[Rule]:
     ...
 
 
 @overload
-def collect_rules(*, module: str) -> Iterator[Rule]:
+def collect_rules(*, module: str) -> list[Rule]:
     ...
 
 
 @overload
-def collect_rules(*, stackdepth: int = 0) -> Iterator[Rule]:
+def collect_rules(*, stackdepth: int = 0) -> list[Rule]:
     ...
 
 
@@ -87,7 +87,7 @@ def collect_rules(
     globals: Mapping[str, Any] | None = None,
     module: str | None = None,
     stackdepth: int = 0,
-) -> Iterator[Rule]:
+) -> list[Rule]:
     """
     Collect all rules from the specified globals and locals. If they are not specified, the globals and locals of the
     calling frame are used.
@@ -108,8 +108,10 @@ def collect_rules(
             else:
                 globals = sys.modules[module].__dict__
 
+        result = []
         for v in chain(globals.values()):
             if isinstance(v, Rule):
-                yield v
+                result.append(v)
+        return result
     finally:
         del globals

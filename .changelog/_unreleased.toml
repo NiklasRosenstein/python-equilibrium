@@ -27,3 +27,9 @@ id = "c5e4305a-881a-4c57-8fe3-9947a2c0949a"
 type = "breaking change"
 description = "Rename `Context` to `ResourceContext`"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "46a5af23-3218-4f1f-9590-3c4681619d44"
+type = "fix"
+description = "`collect_rules()` no longer returns a generator, because that messes up the result of `inspect.stack()`"
+author = "@NiklasRosenstein"
