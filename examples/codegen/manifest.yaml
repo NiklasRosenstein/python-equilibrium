@@ -2,25 +2,25 @@
 apiVersion: example.com/v1
 kind: AwsAccount
 metadata:
-    name: account1
+  name: account1
 spec:
-    displayName: Account One
-    accountEmail: account1@example.com
-    region: eu-west-1
+  displayName: Account One
+  accountEmail: account1@example.com
+  region: eu-west-1
 ---
 apiVersion: example.com/v1
 kind: AwsAccount
 metadata:
-    name: account2
+  name: account2
 spec:
-    displayName: Account Two
-    accountEmail: account2@example.com
-    region: eu-central-1
+  displayName: Account Two
+  accountEmail: account2@example.com
+  region: eu-central-1
 ---
 apiVersion: example.com/v1
 kind: TerraformWorkspace
 metadata:
-    name: account1-bootstrap
+  name: account1-bootstrap
 spec:
-    accountRef: example.com/v1/AwsAccount//account1
-    moduleSource: ssh://git@example.com/terraform-aws-account-bootstrap.git?ref=0.1.0
+  accountRef: example.com/v1/AwsAccount//account1
+  moduleSource: ssh://git@example.com/terraform-aws-account-bootstrap.git?ref=0.1.0
