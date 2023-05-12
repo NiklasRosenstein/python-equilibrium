@@ -111,6 +111,7 @@ def get_workspace_creation_code(context: ResourceContext, resource: Resource[Ter
         f"""
         module "workspace_{resource.metadata.name.replace('-', '_')}" {{
             source = "./modules/terraform_workspace"
+            name = "{resource.metadata.name}"
             variables = [
                 {{
                     name = "VAULT_TOKEN"
