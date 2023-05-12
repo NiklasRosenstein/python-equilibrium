@@ -143,7 +143,7 @@ class Resource(Generic[T]):
             if self.namespace is not None:
                 return f"{self.apiVersion}/{self.kind}/{self.namespace}/{self.name}"
             else:
-                return f"{self.apiVersion}/{self.kind}/{self.name}"
+                return f"{self.apiVersion}/{self.kind}//{self.name}"
 
         @staticmethod
         def of(s: str) -> Resource.URI:
@@ -151,7 +151,7 @@ class Resource(Generic[T]):
             try:
                 apiVersion = "/".join(parts[:-3])
                 kind = parts[-3]
-                namespace = parts[-2]
+                namespace = parts[-2] or None
                 name = parts[-1]
             except IndexError:
                 raise ValueError(f"invalid Resource.URI: {s!r}")
@@ -257,7 +257,7 @@ class Resource(Generic[T]):
         validate_identifier(self.kind, "kind")
 
     def __repr__(self) -> str:
-        return f"Resource(apiVersion={self.apiVersion!r}, kind={self.kind!r}, metadata={self.metadata!r})"
+        return f"Resource('{self.uri}')"
 
     @property
     def type(self) -> Type:

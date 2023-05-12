@@ -33,3 +33,9 @@ id = "46a5af23-3218-4f1f-9590-3c4681619d44"
 type = "fix"
 description = "`collect_rules()` no longer returns a generator, because that messes up the result of `inspect.stack()`"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "463c2d9d-81fa-4812-a8dd-864eeffa34af"
+type = "breaking change"
+description = "`Resource.URI` string representation without namespace now requires an empty string for the namespace (e.g. `apiVersion/kind//name`)"
+author = "@NiklasRosenstein"
