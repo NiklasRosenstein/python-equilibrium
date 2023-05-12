@@ -57,8 +57,6 @@ def get_account_creation_code(resource: Resource[AwsAccount]) -> AwsAccountCreat
     token that can be used to access the account credentials.
     """
 
-    print(">>>> get_account_creation_code:", resource, file=sys.stderr)
-
     name = resource.metadata.name.replace("-", "_")
     account = resource.spec
     vault_credentials_path = f"accounts/aws/{resource.metadata.name}/credentials"
