@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from textwrap import dedent
+from textwrap import dedent, indent
 from typing import IO
 
 from equilibrium.resource import Resource, ResourceContext
@@ -23,6 +23,7 @@ class AwsAccount(Resource.Spec, apiVersion="example.com/v1", kind="AwsAccount", 
 @dataclass(frozen=True)
 class TerraformWorkspace(Resource.Spec, apiVersion="example.com/v1", kind="TerraformWorkspace", namespaced=False):
     accountRef: Resource.URI
+    moduleSource: str
 
 
 #
@@ -77,12 +78,12 @@ def get_account_creation_code(resource: Resource[AwsAccount]) -> AwsAccountCreat
             role_name = "aws_account_{name}"
             policies = [vault_policy.aws_account_{name}.name]
             ttl = "32h"
-            metadata {{
+            metadata = {{
                 "aws_account_name" = "{account.displayName}"
             }}
         }}
         """
-    )
+    ).strip()
     return AwsAccountCreation(
         code=code,
         vault_credentials_path=vault_credentials_path,
@@ -100,7 +101,9 @@ def get_workspace_creation_code(context: ResourceContext, resource: Resource[Ter
 
     account = context.resources.get(resource.spec.accountRef)
     if account.type == AwsAccount.TYPE:
-        vault_token_resource = account.get_state(AwsAccountCreation).vault_token_resource
+        state = account.get_state(AwsAccountCreation)
+        vault_token_resource = state.vault_token_resource
+        module_configuration = get_aws_provider_code(account.into(AwsAccount), state.vault_credentials_path)
     else:
         raise RuntimeError(f"unsupported account type: {account.type}")
 
@@ -116,9 +119,17 @@ def get_workspace_creation_code(context: ResourceContext, resource: Resource[Ter
                     value = {vault_token_resource}
                 }}
             ]
+            module_configuration = <<-EOF
+                {indent(module_configuration, " " * 16).lstrip()}
+
+                module "main" {{
+                    source = "{resource.spec.moduleSource}"
+                    # TODO
+                }}
+            EOF
         }}
         """
-    )
+    ).strip()
 
 
 def get_aws_provider_code(resource: Resource[AwsAccount], vault_credentials_path: str) -> str:
@@ -143,8 +154,8 @@ def get_aws_provider_code(resource: Resource[AwsAccount], vault_credentials_path
                 role_arn = data.vault_generic_secret.aws_credentials.data["role_arn"]
             }}
         }}
-    """
-    )
+        """
+    ).strip()
 
 
 def generate_terraform_code(context: ResourceContext, fp: IO[str]) -> None:
@@ -154,13 +165,13 @@ def generate_terraform_code(context: ResourceContext, fp: IO[str]) -> None:
         creation = get_account_creation_code(account)
         account.set_state(AwsAccountCreation, creation)
         context.resources.put(account, stateful=True)
-        print('#\n# AWS account "{}"\n#'.format(account.metadata.name), file=fp)
+        print('\n#\n# AWS account "{}"\n#\n'.format(account.metadata.name), file=fp)
         print(creation.code, file=fp)
 
     # Generate code for Terraform workspaces.
     ws: Resource[TerraformWorkspace]
     for ws in context.resources.list(TerraformWorkspace):
-        print('#\n# Terraform workspace "{}"\n#'.format(ws.metadata.name), file=fp)
+        print('\n#\n# Terraform workspace "{}"\n#\n'.format(ws.metadata.name), file=fp)
         code = get_workspace_creation_code(context, ws)
         print(code, file=fp)
 
