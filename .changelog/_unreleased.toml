@@ -39,3 +39,9 @@ id = "463c2d9d-81fa-4812-a8dd-864eeffa34af"
 type = "breaking change"
 description = "`Resource.URI` string representation without namespace now requires an empty string for the namespace (e.g. `apiVersion/kind//name`)"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "ee5fcf34-649c-4028-8634-31a577f90c07"
+type = "improvement"
+description = "`ResourceRegistry.get()` and `ServiceRegistry.get()` now have overloads that raise if no default is supplied."
+author = "@NiklasRosenstein"

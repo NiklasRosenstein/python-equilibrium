@@ -3,10 +3,11 @@ from __future__ import annotations
 import atexit
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from os import PathLike
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, TypeVar
+from typing import Any, TypeVar, overload
 
 import yaml
 
@@ -22,6 +23,10 @@ __all__ = ["ResourceContext"]
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
 DEFAULT_NAMESPACE = "default"
+
+
+class NotSet(Enum):
+    Value = 1
 
 
 class ResourceContext:
@@ -165,9 +170,29 @@ class ServiceRegistry(Service.Provider):
             )
         services[service.SERVICE_ID] = service
 
+    @overload
     def get(
-        self, resource_type: Resource.Type | type[Resource.Spec], service_type: type[Service.T]
-    ) -> Service.T | None:
+        self,
+        resource_type: Resource.Type | type[Resource.Spec],
+        service_type: type[Service.T],
+    ) -> Service.T:
+        ...
+
+    @overload
+    def get(
+        self,
+        resource_type: Resource.Type | type[Resource.Spec],
+        service_type: type[Service.T],
+        default: T,
+    ) -> Service.T | T:
+        ...
+
+    def get(
+        self,
+        resource_type: Resource.Type | type[Resource.Spec],
+        service_type: type[Service.T],
+        default: T | NotSet = NotSet.Value,
+    ) -> Service.T | T:
         """
         Obtain a service for the given resource type. If the service is not registered, None is returned.
         """
@@ -179,6 +204,12 @@ class ServiceRegistry(Service.Provider):
         service = services.get(service_type.SERVICE_ID) if services else None
         if service is not None and not isinstance(service, service_type):
             raise RuntimeError(f"Service '{service_type.SERVICE_ID}' is not of type {service_type!r}")
+        if service is None:
+            if default is NotSet.Value:
+                raise KeyError(
+                    f"Service '{service_type.SERVICE_ID}' is not registered for resource type {resource_type!r}"
+                )
+            return default
         return service
 
 
@@ -199,13 +230,26 @@ class ResourceRegistry:
         self._controllers = controllers
         self._default_namespace = default_namespace
 
-    def get(self, uri: Resource.URI) -> GenericResource | None:
+    @overload
+    def get(self, uri: Resource.URI) -> GenericResource:
+        ...
+
+    @overload
+    def get(self, uri: Resource.URI, default: T) -> GenericResource | T:
+        ...
+
+    def get(self, uri: Resource.URI, default: T | NotSet = NotSet.Value) -> GenericResource | T:
         """
         Get a resource by full URI.
         """
 
         with self._store.enter(self._store.LockRequest.from_uri(uri)) as lock:
-            return self._store.get(lock, uri)
+            result = self._store.get(lock, uri)
+        if result is None:
+            if default is NotSet.Value:
+                raise Resource.NotFound(uri)
+            return default
+        return result
 
     def put(self, resource: Resource[Any]) -> Resource[Any]:
         """
@@ -308,3 +352,33 @@ class ResourceRegistry:
                     ),
                 )
             )
+
+    def list(
+        self,
+        spec_type: type[Resource.T_Spec],
+        *,
+        namespace: str | None = "",
+        name: str | None = None,
+        labels: dict[str, str] | None = None,
+    ) -> list[Resource[Resource.T_Spec]]:
+        """
+        Combines #search() and #get() to return a list of resources of the given type.
+        """
+
+        with self._store.enter(self._store.LockRequest(spec_type.API_VERSION, spec_type.KIND, namespace, name)) as lock:
+            uris = self._store.search(
+                lock,
+                self._store.SearchRequest(
+                    spec_type.API_VERSION,
+                    spec_type.KIND,
+                    namespace,
+                    name,
+                    labels,
+                ),
+            )
+            result = []
+            for uri in uris:
+                resource = self._store.get(lock, uri)
+                if resource is not None:
+                    result.append(resource.into(spec_type))
+        return result

@@ -12,7 +12,7 @@ class Signature:
     output_type: type[Any]
 
     def __str__(self) -> str:
-        sig = "(" + ",".join(x.__name__ for x in self.inputs) + ")"
+        sig = "(" + ", ".join(x.__name__ for x in self.inputs) + ")"
         if self.output_type:
             sig += " -> " + self.output_type.__name__
         return sig
