@@ -1,52 +1,91 @@
-from pytest import fixture
+from pytest import raises
 
+from equilibrium.rulesengine.errors import MultipleMatchingRulesError, NoMatchingRulesError
 from equilibrium.rulesengine.Rule import Rule
 from equilibrium.rulesengine.RulesGraph import RulesGraph
+from equilibrium.rulesengine.Signature import Signature
 
 
-@fixture
-def sut() -> RulesGraph:
-    r"""
-    Creates a rule graph of three rules:
+def test__RulesGraph__rules_for() -> None:
+    """
+    Creates a rules graph like this:
 
-                     str
-        (decimal) __/  \__ (hex)
-                    \  /
-                     int
-                      |
-                    float
+        str -> int
+        bool -> int
+        int -> float
+
+    And tests the output of `rules_for` for each type.
     """
 
-    r1 = Rule(
-        func=lambda p, e: int(p.get(str)),
-        input_types={str},
-        output_type=int,
-        id="r1",
+    graph = RulesGraph(
+        [
+            Rule(
+                func=lambda p: int(p.get(str)),
+                input_types={str},
+                output_type=int,
+                id="r1",
+            ),
+            Rule(
+                func=lambda p: int(p.get(bool)),
+                input_types={bool},
+                output_type=int,
+                id="r2",
+            ),
+            Rule(
+                func=lambda p: float(p.get(int)),
+                input_types={int},
+                output_type=float,
+                id="r3",
+            ),
+        ]
     )
-    r2 = Rule(
-        func=lambda p, e: int(p.get(str), base=16),
-        input_types={str},
-        output_type=int,
-        id="r2",
+
+    assert {r.id for r in graph.rules_for(int)} == {"r1", "r2"}
+    assert {r.id for r in graph.rules_for(float)} == {"r3"}
+
+
+def test__RulesGraph__cannot_resolve_diamond_dependency() -> None:
+    """
+    Builds a rules graph like this:
+
+        str -> int
+        str -> bool -> int
+
+    When the requested signature is `(str) -> int`, the engine should raise an exception as it cannot decide
+    whether to use the short or the long path.
+    """
+
+    graph = RulesGraph(
+        rules=[
+            Rule(
+                func=lambda p: int(p.get(str)),
+                input_types={str},
+                output_type=int,
+                id="r1",
+            ),
+            Rule(
+                func=lambda p: int(p.get(bool)),
+                input_types={bool},
+                output_type=int,
+                id="r2",
+            ),
+            Rule(
+                func=lambda p: bool(p.get(str)),
+                input_types={str},
+                output_type=bool,
+                id="r3",
+            ),
+        ]
     )
-    r3 = Rule(
-        func=lambda p, e: float(p.get(int)),
-        input_types={int},
-        output_type=float,
-        id="r3",
-    )
-    g = RulesGraph([r1, r2, r3])
-    return g
 
+    # There's a path for (bool) -> int.
+    assert graph.find_path(Signature({bool}, int)) == [graph["r2"]]
 
-def test__RulesGraph__rules_for(sut: RulesGraph) -> None:
-    assert {r.id for r in sut.rules(int)} == {"r1", "r2"}
-    assert {r.id for r in sut.rules(float)} == {"r3"}
+    # There's no singular path for (str) -> int as it cannot decide to go ((str) -> bool) -> int or (str) -> int.
+    with raises(MultipleMatchingRulesError) as excinfo1:
+        graph.find_path(Signature({str}, int))
+    assert sorted(excinfo1.value.paths, key=len) == [[graph["r1"]], [graph["r3"], graph["r2"]]]
 
-
-def test__RulesGraph__reduce(sut: RulesGraph) -> None:
-    assert set(sut.reduce({int}, float)._graph.nodes) == {int, float}
-    assert set(sut.reduce({str}, int)._graph.nodes) == {str, int}
-    assert set(sut.reduce({str}, float)._graph.nodes) == {str, int, float}
-    assert sut.reduce({str}, float)._graph.nodes == sut._graph.nodes
-    assert sut.reduce({str}, float)._graph.edges == sut._graph.edges
+    # There's no path for (float) -> bool.
+    with raises(NoMatchingRulesError):
+        graph.find_path(Signature({float}, bool))

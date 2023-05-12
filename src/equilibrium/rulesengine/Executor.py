@@ -53,7 +53,8 @@ class SimpleExecutor(Executor):
         try:
             return self._cache.get(rule, params)
         except KeyError:
-            result = rule.execute(params, engine)
+            with engine.as_current():
+                result = rule.execute(params)
             assert isinstance(
                 result, rule.output_type
             ), "Rule output (type: %r) does not match Rule output type: %r" % (
@@ -97,7 +98,7 @@ class ThreadedExecutor(Executor):
                 try:
                     future = self._pending[key]
                 except KeyError:
-                    future = self._executor.submit(rule.execute, params, engine)
+                    future = self._executor.submit(rule.execute, params)
                     self._pending[key] = future
                     future.add_done_callback(lambda _: self._on_result(rule, params, key))
             return future.result()

@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 
 from pytest import mark
@@ -7,6 +8,8 @@ from equilibrium.rulesengine.Executor import Executor
 from equilibrium.rulesengine.Params import Params
 from equilibrium.rulesengine.Rule import Rule, collect_rules, rule
 from equilibrium.rulesengine.RulesEngine import RulesEngine, get
+
+sys.setrecursionlimit(130)
 
 
 @mark.parametrize(
@@ -53,13 +56,13 @@ def test__RulesEngine__picks_correct_rule_for_same_output() -> None:
     engine = RulesEngine(
         rules=[
             Rule(
-                func=lambda p, e: int(p.get(str)),
+                func=lambda p: int(p.get(str)),
                 input_types={str},
                 output_type=int,
                 id="r1",
             ),
             Rule(
-                func=lambda p, e: int(p.get(bool)),
+                func=lambda p: int(p.get(bool)),
                 input_types={bool},
                 output_type=int,
                 id="r2",
@@ -71,3 +74,24 @@ def test__RulesEngine__picks_correct_rule_for_same_output() -> None:
     assert engine.get(int, Params("42")) == 42
     assert engine.get(int, Params(True)) == 1
     assert engine.get(int, Params(False)) == 0
+
+
+def test__RulesEngine__injects_subjects() -> None:
+    @dataclass(frozen=True)
+    class CustomType:
+        v: int
+
+    engine = RulesEngine(
+        rules=[
+            Rule(
+                func=lambda p: p.get(CustomType).v,
+                input_types={CustomType},
+                output_type=int,
+                id="r1",
+            )
+        ],
+        subjects=[CustomType(42)],
+    )
+
+    assert engine.get(int, Params()) == 42
+    assert engine.get(int, Params(CustomType(33))) == 33

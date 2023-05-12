@@ -5,18 +5,15 @@ import sys
 from collections import ChainMap
 from functools import wraps
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Mapping, TypeVar, overload
+from typing import Any, Callable, Iterator, Mapping, TypeVar, overload
 from uuid import uuid4
 
 from typeapi import get_annotations, type_repr
 
 from equilibrium.rulesengine.Params import Params
+from equilibrium.rulesengine.Signature import Signature
 
 T = TypeVar("T")
-
-
-if TYPE_CHECKING:
-    from equilibrium.rulesengine.RulesEngine import RulesEngine
 
 
 class Rule:
@@ -27,7 +24,7 @@ class Rule:
 
     def __init__(
         self,
-        func: Callable[[Params, RulesEngine], Any],
+        func: Callable[[Params], Any],
         input_types: set[type[Any]],
         output_type: type[Any],
         id: str | None = None,
@@ -40,8 +37,12 @@ class Rule:
     def __repr__(self) -> str:
         return f"<Rule {self.id!r} ({', '.join(map(type_repr, self.input_types))}) -> {type_repr(self.output_type)}>"
 
-    def execute(self, params: Params, engine: RulesEngine) -> Any:
-        return self.func(params, engine)
+    @property
+    def signature(self) -> Signature:
+        return Signature(self.input_types, self.output_type)
+
+    def execute(self, params: Params) -> Any:
+        return self.func(params)
 
 
 def rule(func: Callable[..., Any]) -> Rule:
@@ -60,9 +61,8 @@ def rule(func: Callable[..., Any]) -> Rule:
         raise RuntimeError("Rule function must have type annotations for all parameters and return value")
 
     @wraps(func)
-    def _wrapper(params: Params, engine: RulesEngine) -> Any:
-        with engine.as_current():
-            return func(**{k: params.get(v) for v, k in input_types.items()})
+    def _wrapper(params: Params) -> Any:
+        return func(**{k: params.get(v) for v, k in input_types.items()})
 
     return Rule(_wrapper, set(input_types), output_type, func.__module__ + "." + func.__qualname__)
 

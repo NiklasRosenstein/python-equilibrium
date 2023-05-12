@@ -9,3 +9,9 @@ id = "6a03800f-ec32-492b-a08a-43e964a3c0a1"
 type = "fix"
 description = "Fixed an issue in `CrudResourceController.reconcile()` that would cause a resource without state to be created even if the resource had no state; and fixed `ResourceRegistry.delete()` not committing the updated resource with a deletion marker to the store."
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "55409234-dc7f-468b-8035-4025b1cc0bac"
+type = "feature"
+description = "Add `Signature` type, remove `RulesGraph.reduce()` but add `RulesGraph.find_path()`"
+author = "@NiklasRosenstein"

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Collection, KeysView, TypeVar, cast, overload
 
+from equilibrium.rulesengine.Signature import Signature
+
 T = TypeVar("T")
 U = TypeVar("U")
 
@@ -29,6 +31,13 @@ class Params:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({', '.join(map(repr, self._params.values()))})"
+
+    def __or__(self, params: Params) -> Params:
+        """
+        Merge two parameter sets, taking precedence of the parameters in the right hand side.
+        """
+
+        return Params(*{**self._params, **params._params}.values())
 
     @overload
     def get(self, param_type: type[T]) -> T:
@@ -59,9 +68,9 @@ class Params:
         else:
             return Params(*[self.get(t) for t in types if t in self])
 
-    def __or__(self, params: Params) -> Params:
+    def signature(self, output_type: type[Any]) -> Signature:
         """
-        Merge two parameter sets, taking precedence of the parameters in the right hand side.
+        Obtain a signature for this set of parameters, with the specified output type.
         """
 
-        return Params(*{**self._params, **params._params}.values())
+        return Signature(set(self._params.keys()), output_type)
