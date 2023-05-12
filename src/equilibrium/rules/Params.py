@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Collection, KeysView, TypeVar, cast, overload
 
-from equilibrium.rulesengine.Signature import Signature
+from equilibrium.rules.Signature import Signature
 
 T = TypeVar("T")
 U = TypeVar("U")

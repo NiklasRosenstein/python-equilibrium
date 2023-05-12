@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 from pytest import mark
 
-from equilibrium.rulesengine.Cache import Cache
-from equilibrium.rulesengine.Executor import Executor
-from equilibrium.rulesengine.Params import Params
-from equilibrium.rulesengine.Rule import Rule, collect_rules, rule
-from equilibrium.rulesengine.RulesEngine import RulesEngine, get
+from equilibrium.rules.Cache import Cache
+from equilibrium.rules.Executor import Executor
+from equilibrium.rules.Params import Params
+from equilibrium.rules.Rule import Rule, collect_rules, rule
+from equilibrium.rules.RulesEngine import RulesEngine, get
 
 sys.setrecursionlimit(130)
 

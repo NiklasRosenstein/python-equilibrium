@@ -10,8 +10,8 @@ from uuid import uuid4
 
 from typeapi import get_annotations, type_repr
 
-from equilibrium.rulesengine.Params import Params
-from equilibrium.rulesengine.Signature import Signature
+from equilibrium.rules.Params import Params
+from equilibrium.rules.Signature import Signature
 
 T = TypeVar("T")
 

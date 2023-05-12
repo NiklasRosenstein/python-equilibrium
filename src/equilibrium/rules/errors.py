@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from equilibrium.rulesengine.Rule import Rule
-    from equilibrium.rulesengine.RulesGraph import RulesGraph
-    from equilibrium.rulesengine.Signature import Signature
+    from equilibrium.rules.Rule import Rule
+    from equilibrium.rules.RulesGraph import RulesGraph
+    from equilibrium.rules.Signature import Signature
 
 SUBSET_CHAR = "⊆"
 

@@ -3,12 +3,12 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Any, ClassVar, Iterable, Iterator, Sequence, TypeVar
 
-from equilibrium.rulesengine.Cache import Cache
-from equilibrium.rulesengine.Executor import Executor
-from equilibrium.rulesengine.Params import Params
-from equilibrium.rulesengine.Rule import Rule
-from equilibrium.rulesengine.RulesGraph import RulesGraph
-from equilibrium.rulesengine.Signature import Signature
+from equilibrium.rules.Cache import Cache
+from equilibrium.rules.Executor import Executor
+from equilibrium.rules.Params import Params
+from equilibrium.rules.Rule import Rule
+from equilibrium.rules.RulesGraph import RulesGraph
+from equilibrium.rules.Signature import Signature
 
 T = TypeVar("T")
 

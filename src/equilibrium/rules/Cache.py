@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from equilibrium.rulesengine.Params import Params
-    from equilibrium.rulesengine.Rule import Rule
+    from equilibrium.rules.Params import Params
+    from equilibrium.rules.Rule import Rule
 
 
 class Cache(ABC):

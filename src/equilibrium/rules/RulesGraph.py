@@ -5,9 +5,9 @@ from typing import Any, Iterable
 from networkx import MultiDiGraph
 from networkx.algorithms.dag import is_directed_acyclic_graph
 
-from equilibrium.rulesengine.errors import MultipleMatchingRulesError, NoMatchingRulesError, RuleResolveError
-from equilibrium.rulesengine.Rule import Rule
-from equilibrium.rulesengine.Signature import Signature
+from equilibrium.rules.errors import MultipleMatchingRulesError, NoMatchingRulesError, RuleResolveError
+from equilibrium.rules.Rule import Rule
+from equilibrium.rules.Signature import Signature
 
 
 class RulesGraph:

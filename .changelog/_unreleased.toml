@@ -57,3 +57,9 @@ id = "b4fc42d9-8ba0-44f9-9ac2-61d30753ec97"
 type = "feature"
 description = "add `ResourceRegistry.put(stateful)` parameter"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "c8c21750-ed20-4ec0-8143-97fec3655c7b"
+type = "breaking change"
+description = "Rename `equilibrium.rulesengine` to `equilibrium.rules`"
+author = "@NiklasRosenstein"

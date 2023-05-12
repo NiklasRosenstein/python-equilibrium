@@ -6,10 +6,10 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from equilibrium.rulesengine.Cache import Cache
-    from equilibrium.rulesengine.Params import Params
-    from equilibrium.rulesengine.Rule import Rule
-    from equilibrium.rulesengine.RulesEngine import RulesEngine
+    from equilibrium.rules.Cache import Cache
+    from equilibrium.rules.Params import Params
+    from equilibrium.rules.Rule import Rule
+    from equilibrium.rules.RulesEngine import RulesEngine
 
 
 class Executor(ABC):

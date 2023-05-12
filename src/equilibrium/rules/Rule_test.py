@@ -1,4 +1,4 @@
-from equilibrium.rulesengine.Rule import Rule, collect_rules, rule
+from equilibrium.rules.Rule import Rule, collect_rules, rule
 
 
 def test__collect_rules__picks_up_rules_from_nonlocals() -> None:

@@ -1,9 +1,9 @@
 from pytest import raises
 
-from equilibrium.rulesengine.errors import MultipleMatchingRulesError, NoMatchingRulesError
-from equilibrium.rulesengine.Rule import Rule
-from equilibrium.rulesengine.RulesGraph import RulesGraph
-from equilibrium.rulesengine.Signature import Signature
+from equilibrium.rules.errors import MultipleMatchingRulesError, NoMatchingRulesError
+from equilibrium.rules.Rule import Rule
+from equilibrium.rules.RulesGraph import RulesGraph
+from equilibrium.rules.Signature import Signature
 
 
 def test__RulesGraph__rules_for() -> None:
