@@ -51,3 +51,9 @@ id = "0da1df08-8da4-4604-b859-9692a47f94f4"
 type = "feature"
 description = "Make `Resource.URI` orderable"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "b4fc42d9-8ba0-44f9-9ac2-61d30753ec97"
+type = "feature"
+description = "add `ResourceRegistry.put(stateful)` parameter"
+author = "@NiklasRosenstein"

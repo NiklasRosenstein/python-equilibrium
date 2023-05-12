@@ -251,17 +251,22 @@ class ResourceRegistry:
             return default
         return result
 
-    def put(self, resource: Resource[Any]) -> Resource[Any]:
+    def put(self, resource: Resource[Any], stateful: bool = False) -> Resource[Any]:
         """
         Put a resource into the resource store. This will trigger the admission controllers. Any admission controller
         may complain about the resource, mutate it and raise an exception if necessary. This exception will propagate
         to the caller of #put().
 
-        Note that this method does not permit a resource which has state. This method can only be used to update a
-        resource's metadata and spec. The state will be inherited from the existing resource, if it exists.
+        Note that this method does not permit a resource which has state unless the *stateful* flag is set to True.
+        This method should only be used to update a resource's metadata and spec. The state will be inherited from
+        existing resource, if it exists.
+
+        If the *stateful* flag is set to True, the state of the resource will be committed to the resource store.
+        Note that this also means that if the specified *resource* has no state, but the store currently does store
+        a state for the resource, that state will be deleted.
         """
 
-        if resource.state is not None:
+        if not stateful and resource.state is not None:
             raise ValueError("Cannot put a resource with state into the resource store")
 
         resource_spec = self._resource_types.get(resource.type)
@@ -288,9 +293,10 @@ class ResourceRegistry:
         resource = self._controllers.admit(resource)
 
         with self._store.enter(self._store.LockRequest.from_uri(uri)) as lock:
-            # Inherit the state of an existing resource, if it exists.
-            existing_resource = self._store.get(lock, uri)
-            resource.state = existing_resource.state if existing_resource else None
+            if not stateful:
+                # Inherit the state of an existing resource, if it exists.
+                existing_resource = self._store.get(lock, uri)
+                resource.state = existing_resource.state if existing_resource else None
 
             logger.debug("Putting resource '%s'.", uri)
             self._store.put(lock, resource.into_generic())
