@@ -5,7 +5,7 @@ import sys
 from collections import ChainMap
 from functools import wraps
 from itertools import chain
-from typing import Any, Callable, Mapping, TypeVar, overload
+from typing import Any, Callable, Mapping, TypeVar, overload, ParamSpec
 from uuid import uuid4
 
 from typeapi import get_annotations, type_repr
@@ -14,6 +14,7 @@ from equilibrium.rules.Params import Params
 from equilibrium.rules.Signature import Signature
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class Rule:
@@ -34,6 +35,10 @@ class Rule:
         self.input_types = input_types
         self.output_type = output_type
 
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """ Rules can be called just like their underlying function. This is mostly for the @rule decorator. """
+        return self.func(*args, **kwargs)
+
     def __repr__(self) -> str:
         return f"<Rule {self.id!r} ({', '.join(map(type_repr, self.input_types))}) -> {type_repr(self.output_type)}>"
 
@@ -45,7 +50,7 @@ class Rule:
         return self.func(params)
 
 
-def rule(func: Callable[..., Any]) -> Rule:
+def rule(func: Callable[P, T]) -> Callable[P, T]:
     """
     Decorator for functions to be used as rules.
     """
