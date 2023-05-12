@@ -45,3 +45,9 @@ id = "ee5fcf34-649c-4028-8634-31a577f90c07"
 type = "improvement"
 description = "`ResourceRegistry.get()` and `ServiceRegistry.get()` now have overloads that raise if no default is supplied."
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "0da1df08-8da4-4604-b859-9692a47f94f4"
+type = "feature"
+description = "Make `Resource.URI` orderable"
+author = "@NiklasRosenstein"

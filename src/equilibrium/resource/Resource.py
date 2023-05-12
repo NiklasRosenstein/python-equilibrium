@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
+from functools import total_ordering
 from typing import Any, ClassVar, Generic, Literal, Mapping, Protocol, Type as _Type, TypeVar, cast, overload
 
 import databind.json
@@ -125,6 +126,7 @@ class Resource(Generic[T]):
     GenericState = dict[str, Any]
 
     @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
+    @total_ordering
     @dataclass(frozen=True)
     class URI:
         apiVersion: str
@@ -144,6 +146,12 @@ class Resource(Generic[T]):
                 return f"{self.apiVersion}/{self.kind}/{self.namespace}/{self.name}"
             else:
                 return f"{self.apiVersion}/{self.kind}//{self.name}"
+
+        def __lt__(self, other: Any) -> bool:
+            if type(other) == Resource.URI:
+                return str(self) < str(other)
+            else:
+                return NotImplemented
 
         @staticmethod
         def of(s: str) -> Resource.URI:
