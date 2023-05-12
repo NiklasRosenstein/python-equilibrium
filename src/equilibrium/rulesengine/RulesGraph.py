@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Collection, Iterable
+from typing import Any, Iterable
 
 from networkx import MultiDiGraph
 from networkx.algorithms.dag import is_directed_acyclic_graph
@@ -15,11 +15,14 @@ class RulesGraph:
     This graph contains types as the nodes and rules are the edges.
     """
 
-    def __init__(self, rules: Collection[Rule] | RulesGraph) -> None:
+    def __init__(self, rules: Iterable[Rule] | RulesGraph) -> None:
         if isinstance(rules, RulesGraph):
             self._rules: dict[str, Rule] = rules._rules.copy()
         else:
+            rules = list(rules)
             self._rules = {r.id: r for r in rules}
+            if len(self._rules) != len(rules):
+                raise ValueError("Duplicate rule IDs")
 
         self._graph = MultiDiGraph()
         for rule in self._rules.values():
@@ -46,8 +49,8 @@ class RulesGraph:
         """
 
         rules: set[Rule] = set()
-        # if output_type not in self._graph.nodes:
-        #     return rules
+        if output_type not in self._graph.nodes:
+            return rules
         for edge in self._graph.in_edges(output_type):
             for data in self._graph.get_edge_data(*edge).values():
                 rules.add(data["rule"])

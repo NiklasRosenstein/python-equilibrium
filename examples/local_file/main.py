@@ -5,9 +5,9 @@ from pathlib import Path
 
 from rich.logging import RichHandler
 
-from equilibrium.resource.Context import Context
 from equilibrium.resource.CrudResourceController import CrudResourceController
 from equilibrium.resource.Resource import Resource
+from equilibrium.resource.ResourceContext import ResourceContext
 
 logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)])
 
@@ -70,7 +70,7 @@ class LocalFileController(
         return resource
 
 
-ctx = Context.create(Context.JsonBackend("data"))
+ctx = ResourceContext.create(ResourceContext.JsonBackend("data"))
 ctx.resource_types.register(LocalFile)
 ctx.controllers.register(LocalFileController())
 ctx.load_manifest(Path(__file__).parent / "manifest.yaml")

@@ -37,7 +37,18 @@ class Service(ABC):
         def get(self, resource_type: Resource.Type, service_type: type[Service.T]) -> Service.T | None:
             ...
 
-    def __init_subclass__(cls, serviceId: str, **kwargs: Any) -> None:
-        validate_service_id(serviceId)
-        cls.SERVICE_ID = cls.Id(serviceId)
+    def __init_subclass__(cls, serviceId: str | None = None, **kwargs: Any) -> None:
+        # Check if any of the base classes is a subclass of the service. In this case, the `serviceId` is inherited
+        # and must not be redefined.
+        if any(issubclass(x, Service) and x is not Service for x in cls.__bases__):
+            if serviceId is not None:
+                raise RuntimeError("Service implementation must not redefine serviceId")
+            assert hasattr(cls, "SERVICE_ID"), "Service parent class should have a serviceId defined."
+
+        else:
+            if serviceId is None:
+                raise RuntimeError("Service subclass must define serviceId")
+            validate_service_id(serviceId)
+            cls.SERVICE_ID = cls.Id(serviceId)
+
         return super().__init_subclass__(**kwargs)

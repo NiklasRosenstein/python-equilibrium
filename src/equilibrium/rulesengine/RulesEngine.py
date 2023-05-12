@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Any, ClassVar, Iterator, Sequence, TypeVar
+from typing import Any, ClassVar, Iterable, Iterator, Sequence, TypeVar
 
 from equilibrium.rulesengine.Cache import Cache
 from equilibrium.rulesengine.Executor import Executor
@@ -20,7 +20,7 @@ class RulesEngine:
 
     def __init__(
         self,
-        rules: list[Rule] | RulesGraph,
+        rules: Iterable[Rule] | RulesGraph,
         subjects: Sequence[Any] | None = None,
         executor: Executor | None = None,
     ) -> None:

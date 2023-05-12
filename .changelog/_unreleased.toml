@@ -21,3 +21,9 @@ id = "b579594b-ad1f-4d23-8aae-262e71f331ac"
 type = "breaking change"
 description = "Rename `equilibrium.core` to `equilibrium.resource`"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "c5e4305a-881a-4c57-8fe3-9947a2c0949a"
+type = "breaking change"
+description = "Rename `Context` to `ResourceContext`"
+author = "@NiklasRosenstein"

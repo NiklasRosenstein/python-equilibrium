@@ -18,13 +18,13 @@ from equilibrium.resource.ResourceController import ResourceController
 from equilibrium.resource.ResourceStore import ResourceStore
 from equilibrium.resource.Service import Service
 
-__all__ = ["Context"]
+__all__ = ["ResourceContext"]
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
 DEFAULT_NAMESPACE = "default"
 
 
-class Context:
+class ResourceContext:
     """
     The controller context is the main entry point for managing
 
@@ -55,7 +55,7 @@ class Context:
         max_lock_duration: float | None = 5.0
 
     @classmethod
-    def create(cls, backend: InMemoryBackend | JsonBackend) -> Context:
+    def create(cls, backend: InMemoryBackend | JsonBackend) -> ResourceContext:
         match backend:
             case cls.InMemoryBackend(max_lock_duration):
                 # TODO(@NiklasRosenstein): Actually implement an in-memory backend.
@@ -148,10 +148,13 @@ class ServiceRegistry(Service.Provider):
         self._resources = resources
         self._services: dict[Resource.Type, dict[Service.Id, Service]] = {}
 
-    def register(self, resource_type: Resource.Type, service: Service) -> None:
+    def register(self, resource_type: Resource.Type | type[Resource.Spec], service: Service) -> None:
         """
         Register a service to the controller for the given resource type.
         """
+
+        if isinstance(resource_type, type):
+            resource_type = resource_type.TYPE
 
         service.resources = self._resources
         service.services = self
@@ -162,10 +165,15 @@ class ServiceRegistry(Service.Provider):
             )
         services[service.SERVICE_ID] = service
 
-    def get(self, resource_type: Resource.Type, service_type: type[Service.T]) -> Service.T | None:
+    def get(
+        self, resource_type: Resource.Type | type[Resource.Spec], service_type: type[Service.T]
+    ) -> Service.T | None:
         """
         Obtain a service for the given resource type. If the service is not registered, None is returned.
         """
+
+        if isinstance(resource_type, type):
+            resource_type = resource_type.TYPE
 
         services = self._services.get(resource_type)
         service = services.get(service_type.SERVICE_ID) if services else None
