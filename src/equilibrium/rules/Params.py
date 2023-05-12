@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Collection, Generic, KeysView, Mapping, Sequence, TypeAlias, TypeVar, cast, overload
 
+from equilibrium.rules.HashSupport import Hasher
 from equilibrium.rules.Signature import Signature
 
 T = TypeVar("T")
@@ -51,10 +52,13 @@ information.
     InitType: TypeAlias = Sequence[object] | Mapping[type[Any], object] | "Params"
 
     _params: dict[type[Any], object]
+    _hasher: Hasher
 
-    def __init__(self, args: InitType = ()):
+    def __init__(self, args: InitType = (), hasher: Hasher | None = None):
         if isinstance(args, Params):
             self._params = dict(args._params)
+            if hasher is None:
+                hasher = args._hasher
         elif isinstance(args, Mapping):
             self._params = dict(args)
         else:
@@ -71,6 +75,7 @@ information.
                 type_ = type_.__origin__
             assert isinstance(obj, type_), "Object {} is not an instance of type {}".format(obj, type_)
 
+        self._hasher = hasher or hash
         self._hash: int | None = None
 
     def __contains__(self, param_type: type[Any]) -> bool:
@@ -78,7 +83,7 @@ information.
 
     def __hash__(self) -> int:
         if self._hash is None:
-            self._hash = hash(tuple(sorted(map(hash, self._params.values()))))
+            self._hash = self._hasher(tuple(sorted(map(self._hasher, self._params.values()))))
         return self._hash
 
     def __repr__(self) -> str:
@@ -89,7 +94,13 @@ information.
         Merge two parameter sets, taking precedence of the parameters in the right hand side.
         """
 
-        return Params({**self._params, **params._params})
+        return Params({**self._params, **params._params}, self._hasher)
+
+    def __len__(self) -> int:
+        return len(self._params)
+
+    def __bool__(self) -> bool:
+        return bool(self._params)
 
     @overload
     def get(self, param_type: type[T]) -> T:
@@ -116,9 +127,9 @@ information.
         """
 
         if total:
-            return Params({t: self.get(t) for t in types})
+            return Params({t: self.get(t) for t in types}, self._hasher)
         else:
-            return Params({t: self.get(t) for t in types if t in self})
+            return Params({t: self.get(t) for t in types if t in self}, self._hasher)
 
     def signature(self, output_type: type[Any]) -> Signature:
         """
@@ -126,3 +137,10 @@ information.
         """
 
         return Signature(set(self._params.keys()), output_type)
+
+    def with_hasher(self, hasher: Hasher) -> Params:
+        """
+        Replace the hasher.
+        """
+
+        return Params(self, hasher)

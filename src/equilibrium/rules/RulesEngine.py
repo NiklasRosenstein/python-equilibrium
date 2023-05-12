@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Iterable, Iterator, TypeVar
 
 from equilibrium.rules.Cache import Cache
 from equilibrium.rules.Executor import Executor
+from equilibrium.rules.HashSupport import HashSupport
 from equilibrium.rules.Params import Params
 from equilibrium.rules.Rule import Rule
 from equilibrium.rules.RulesGraph import RulesGraph
@@ -25,7 +26,8 @@ class RulesEngine:
         executor: Executor | None = None,
     ) -> None:
         self.graph = RulesGraph(rules)
-        self.subjects = Params(subjects or ())
+        self.hashsupport = HashSupport()
+        self.subjects = Params(subjects or (), self.hashsupport)
         self.executor = executor or Executor.simple(Cache.memory())
 
     _current_engine_stack: ClassVar[list[RulesEngine]] = []
@@ -54,6 +56,9 @@ class RulesEngine:
         Evaluate the rules to derive the specified *output_type* from the given parameters.
         """
 
+        if not params and output_type in self.subjects:
+            return self.subjects.get(output_type)
+
         sig = Signature(set(params.types()) | set(self.subjects.types()), output_type)
         rules = self.graph.find_path(sig)
         assert len(rules) > 0, "Empty path?"
@@ -62,7 +67,7 @@ class RulesEngine:
         for rule in rules:
             inputs = self.subjects.filter(rule.input_types) | params.filter(rule.input_types)
             output = self.executor.execute(rule, inputs, self)
-            params = params | Params({rule.output_type: output})
+            params = params | Params({rule.output_type: output}, self.hashsupport)
 
         assert isinstance(output, output_type), f"Expected {output_type}, got {type(output)}"
         return output
@@ -78,8 +83,8 @@ def get(output_type: type[T], *inputs: object) -> T:
 
     if inputs and isinstance(inputs[0], dict):
         assert len(inputs) == 1, "No arguments allowed after dictionary"
-        params = Params(inputs[0])
+        params = Params(inputs[0], engine.hashsupport)
     else:
-        params = Params(inputs)
+        params = Params(inputs, engine.hashsupport)
 
     return engine.get(output_type, params)
