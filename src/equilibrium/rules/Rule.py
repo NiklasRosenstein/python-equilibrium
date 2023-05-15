@@ -5,7 +5,7 @@ import sys
 from collections import ChainMap
 from functools import wraps
 from itertools import chain
-from typing import Any, Callable, Mapping, TypeVar, overload, ParamSpec
+from typing import Any, Callable, Mapping, ParamSpec, TypeVar, overload
 from uuid import uuid4
 
 from typeapi import get_annotations, type_repr
@@ -36,7 +36,7 @@ class Rule:
         self.output_type = output_type
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        """ Rules can be called just like their underlying function. This is mostly for the @rule decorator. """
+        """Rules can be called just like their underlying function. This is mostly for the @rule decorator."""
         return self.func(*args, **kwargs)
 
     def __repr__(self) -> str:
