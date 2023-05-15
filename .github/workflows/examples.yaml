@@ -1,0 +1,25 @@
+name: "Examples"
+
+on:
+  push: { branches: [ "develop" ], tags: [ "*" ] }
+  pull_request: { branches: [ "develop" ] }
+
+jobs:
+
+  example-local-file:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: python-slap/slap-cli@gha/install/v1
+    - run: slap install -vv --no-venv-check
+    - run: python examples/local_file/main.py
+    - run: cat /tmp/foobar.txt | grep "Hello World!"
+
+  example-service:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: python-slap/slap-cli@gha/install/v1
+    - run: slap install -vv --no-venv-check
+    - run: |
+        python examples/service/main.py | grep "result is: 3"
