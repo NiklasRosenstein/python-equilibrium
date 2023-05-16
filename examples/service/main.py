@@ -17,7 +17,7 @@ class Add(Resource.Spec, apiVersion="example.com/v1", kind="Add"):
     b: int
 
 
-class Adder(Service, serviceId="example.com/v1/Adder"):
+class Adder(Service, serviceId="example.com/v1/Adder", resourceType=Add):
     def add(self, add: Add) -> int:
         return add.a + add.b
 
@@ -31,7 +31,7 @@ class AdderTest(ResourceController):
 
 ctx = ResourceContext.create(ResourceContext.InMemoryBackend())
 ctx.resource_types.register(Add)
-ctx.services.register(Add.TYPE, Adder())
+ctx.services.register(Adder())
 ctx.resources.put(Namespace.create_resource("default"))
 ctx.resources.put(Resource.create(Resource.Metadata("default", "onePlusTwo"), Add(a=1, b=2)))
 ctx.controllers.register(AdderTest())

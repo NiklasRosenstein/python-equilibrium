@@ -153,12 +153,18 @@ class ServiceRegistry(Service.Provider):
         self._resources = resources
         self._services: dict[Resource.Type, dict[Service.Id, Service]] = {}
 
-    def register(self, resource_type: Resource.Type | type[Resource.Spec], service: Service) -> None:
+    def register(self, service: Service, resource_type: Resource.Type | type[Resource.Spec] | None = None) -> None:
         """
-        Register a service to the controller for the given resource type.
+        Register a service to the controller for the given resource type. If no resource type is specified, the
+        service must have a resource type specified in its class definition. If no resource type is specified, a
+        `ValueError` is raised.
         """
 
-        if isinstance(resource_type, type):
+        if resource_type is None:
+            if service.RESOURCE_TYPE is None:
+                raise ValueError(f"Service {service!r} does not specify a resource type")
+            resource_type = service.RESOURCE_TYPE
+        elif isinstance(resource_type, type):
             resource_type = resource_type.TYPE
 
         service.resources = self._resources

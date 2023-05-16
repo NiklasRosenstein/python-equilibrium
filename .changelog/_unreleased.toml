@@ -1,0 +1,11 @@
+[[entries]]
+id = "037dfac2-4f21-411e-8277-47cfbf29b907"
+type = "feature"
+description = "A service implementation may now specifiy a single resource type that it supports in its class definition."
+author = "@NiklasRosenstein"
+
+[[entries]]
+id = "eceba01d-1d7d-4d98-afa9-9c8d017ab7c0"
+type = "breaking change"
+description = "Switched up the order of arguments to `ServiceRegistry.register()`"
+author = "@NiklasRosenstein"
