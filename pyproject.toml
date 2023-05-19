@@ -16,7 +16,7 @@ keywords = []
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/NiklasRosenstein/python-equilibrium/issues"
 # Documentation = ""
-# Homepage = ""
+Homepage = "https://github.com/NiklasRosenstein/python-equilibrium"
 Repository = "https://github.com/NiklasRosenstein/python-equilibrium"
 
 [tool.poetry.dependencies]
