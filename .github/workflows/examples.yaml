@@ -6,15 +6,6 @@ on:
 
 jobs:
 
-  example-codegen:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: python-slap/slap-cli@gha/install/v1
-    - run: slap install -vv --no-venv-check
-    - run: |
-        python examples/codegen/main.py
-
   example-local-file:
     runs-on: ubuntu-latest
     steps:
