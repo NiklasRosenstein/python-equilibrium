@@ -16,6 +16,12 @@ extensible and flexible, allowing you to implement control loops that are tailor
 Check out the [examples/local_file/](examples/local_file/) directory for a simple example of a control loop that
 monitors a local file and takes action when the file is modified.
 
+__Difference to Kubernetes resources__
+
+* Equilibrium does not currently support any key other than `spec` next to `apiVersion`, `kind`, and `metadata` in
+  a resource definition. This means Equilibrium cannot be used to deserialize actual Kubernetes `Secret` of `Config`
+  resources.
+
 ## Overview: Rules engine
 
 Equilibrium is also a framework for implementing rules engines. A rules engine is a system derives a sequence of rules
