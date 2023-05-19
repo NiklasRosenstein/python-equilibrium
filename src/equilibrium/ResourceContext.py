@@ -11,13 +11,13 @@ from typing import Any, TypeVar, overload
 
 import yaml
 
-from equilibrium.resource.AdmissionController import AdmissionController
-from equilibrium.resource.JsonResourceStore import JsonResourceStore
-from equilibrium.resource.Namespace import Namespace
-from equilibrium.resource.Resource import GenericResource, Resource
-from equilibrium.resource.ResourceController import ResourceController
-from equilibrium.resource.ResourceStore import ResourceStore
-from equilibrium.resource.Service import Service
+from equilibrium.AdmissionController import AdmissionController
+from equilibrium.JsonResourceStore import JsonResourceStore
+from equilibrium.Namespace import Namespace
+from equilibrium.Resource import GenericResource, Resource
+from equilibrium.ResourceController import ResourceController
+from equilibrium.ResourceStore import ResourceStore
+from equilibrium.Service import Service
 
 __all__ = ["ResourceContext"]
 T = TypeVar("T")

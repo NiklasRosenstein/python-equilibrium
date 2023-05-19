@@ -3,8 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, NewType, TypeVar
 
-from equilibrium.resource.Resource import Resource
-from equilibrium.resource.ResourceStore import ResourceStore
+from equilibrium.Resource import Resource
+from equilibrium.ResourceStore import ResourceStore
 
 
 def validate_service_id(s: str) -> None:

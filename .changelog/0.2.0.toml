@@ -21,7 +21,7 @@ author = "@NiklasRosenstein"
 [[entries]]
 id = "b579594b-ad1f-4d23-8aae-262e71f331ac"
 type = "breaking change"
-description = "Rename `equilibrium.core` to `equilibrium.resource`"
+description = "Rename `equilibrium.core` to `equilibrium`"
 author = "@NiklasRosenstein"
 
 [[entries]]

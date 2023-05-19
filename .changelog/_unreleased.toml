@@ -1,0 +1,5 @@
+[[entries]]
+id = "2704b7e4-7e81-4dea-b35f-96075e89df0a"
+type = "breaking change"
+description = "Move `equilibrium.resources` to `equilibrium` package."
+author = "@NiklasRosenstein"

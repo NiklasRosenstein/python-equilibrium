@@ -4,10 +4,10 @@ from enum import Enum
 from logging import Logger
 from typing import Any, ClassVar, Generic
 
-from equilibrium.resource.AdmissionController import AdmissionController
-from equilibrium.resource.Resource import Resource
-from equilibrium.resource.ResourceController import ResourceController
-from equilibrium.resource.ResourceStore import ResourceStore
+from equilibrium.AdmissionController import AdmissionController
+from equilibrium.Resource import Resource
+from equilibrium.ResourceController import ResourceController
+from equilibrium.ResourceStore import ResourceStore
 
 __all__ = ["CrudResourceController"]
 

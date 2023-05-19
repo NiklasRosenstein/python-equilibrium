@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from equilibrium.resource.Resource import Resource
+from equilibrium.Resource import Resource
 
 
 def test__Resource_URI__validates_apiVersion() -> None:

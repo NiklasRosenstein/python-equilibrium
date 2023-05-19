@@ -4,11 +4,11 @@ An example to illustrate resource serviecs.
 
 from dataclasses import dataclass
 
-from equilibrium.resource.Namespace import Namespace
-from equilibrium.resource.Resource import Resource
-from equilibrium.resource.ResourceContext import ResourceContext
-from equilibrium.resource.ResourceController import ResourceController
-from equilibrium.resource.Service import Service
+from equilibrium.Namespace import Namespace
+from equilibrium.Resource import Resource
+from equilibrium.ResourceContext import ResourceContext
+from equilibrium.ResourceController import ResourceController
+from equilibrium.Service import Service
 
 
 @dataclass

@@ -5,9 +5,9 @@ from pathlib import Path
 
 from rich.logging import RichHandler
 
-from equilibrium.resource.CrudResourceController import CrudResourceController
-from equilibrium.resource.Resource import Resource
-from equilibrium.resource.ResourceContext import ResourceContext
+from equilibrium.CrudResourceController import CrudResourceController
+from equilibrium.Resource import Resource
+from equilibrium.ResourceContext import ResourceContext
 
 logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)])
 

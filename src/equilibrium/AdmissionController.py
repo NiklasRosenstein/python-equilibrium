@@ -1,9 +1,9 @@
 from abc import ABC
 from typing import Any
 
-from equilibrium.resource.Resource import Resource
-from equilibrium.resource.ResourceStore import ResourceStore
-from equilibrium.resource.Service import Service
+from equilibrium.Resource import Resource
+from equilibrium.ResourceStore import ResourceStore
+from equilibrium.Service import Service
 
 __all__ = ["AdmissionController"]
 

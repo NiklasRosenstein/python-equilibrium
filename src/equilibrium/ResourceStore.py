@@ -5,8 +5,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Iterator, NewType
 
-from equilibrium.resource.Namespace import Namespace
-from equilibrium.resource.Resource import GenericResource, Resource
+from equilibrium.Namespace import Namespace
+from equilibrium.Resource import GenericResource, Resource
 
 __all__ = ["ResourceStore"]
 
