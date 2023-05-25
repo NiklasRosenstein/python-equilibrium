@@ -144,8 +144,21 @@ class ResourceTypeRegistry:
     def register(self, spec_type: type[Resource.Spec]) -> None:
         self._resource_types.setdefault(spec_type.API_VERSION, {})[spec_type.KIND] = spec_type
 
-    def get(self, resource_type: Resource.Type) -> type[Resource.Spec] | None:
-        return self._resource_types.get(resource_type.apiVersion, {}).get(resource_type.kind)
+    @overload
+    def get(self, resource_type: Resource.Type) -> type[Resource.Spec]:
+        ...
+
+    @overload
+    def get(self, resource_type: Resource.Type, default: T) -> type[Resource.Spec] | T:
+        ...
+
+    def get(self, resource_type: Resource.Type, default: T | NotSet = NotSet.Value) -> type[Resource.Spec] | T:
+        try:
+            return self._resource_types.get(resource_type.apiVersion, {})[resource_type.kind]
+        except KeyError:
+            if default is NotSet.Value:
+                raise KeyError(resource_type)
+            return default
 
 
 class ServiceRegistry(Service.Provider):

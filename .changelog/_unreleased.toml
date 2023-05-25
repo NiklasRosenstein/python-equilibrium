@@ -1,0 +1,5 @@
+[[entries]]
+id = "6721797e-7750-4207-884b-2c9731cb8e91"
+type = "improvement"
+description = "`ResourceRegistry.get()` now has overloads, raises a `KeyError` with one argument if no such resource type is registered."
+author = "@NiklasRosenstein"
