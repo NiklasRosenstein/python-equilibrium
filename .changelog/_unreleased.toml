@@ -1,0 +1,5 @@
+[[entries]]
+id = "08f98baf-d4d2-43a5-9fde-2f9242abdbd6"
+type = "fix"
+description = "Unfreeze `Resource.NotFound` and `Resource.ValidationFailed` exception types as it leads to issues when the exception passed through `contextlib` (it will set the `__traceback__` attribute)"
+author = "@NiklasRosenstein"
