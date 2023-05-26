@@ -209,6 +209,13 @@ class Resource(Generic[T]):
         def locator(self) -> Resource.Locator:
             return Resource.Locator(self.namespace, self.name)
 
+        def with_default_namespace(self, namespace: str) -> Resource.URI:
+            """
+            Return a copy of this URI with the given namespace if the namespace is not set.
+            """
+
+            return Resource.URI(self.apiVersion, self.kind, self.namespace or namespace, self.name)
+
     @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
     @dataclass(frozen=True)
     class Type:
