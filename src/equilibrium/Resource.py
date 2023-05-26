@@ -15,7 +15,8 @@ __all__ = ["Resource", "match_labels", "validate_api_version", "validate_identif
 T = TypeVar("T")
 
 VALID_IDENTIFIER_REGEX = r"^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?$"
-VALID_APIVERSION_REGEX = r"^[\.a-z0-9]([-\.a-z0-9]*[\.a-z0-9])?(/[\.a-z0-9]([-\.a-z0-9]*[\.a-z0-9])?)*$"
+VALID_APIVERSION_GROUP_REGEX = r"^[\.a-z0-9]([-\.a-z0-9]*[\.a-z0-9])?$"
+VALID_APIVERSION_VERSION_REGEX = r"^v[0-9]([-a-z0-9]*[a-z0-9])?$"
 
 
 class Dataclass(Protocol):
@@ -30,8 +31,18 @@ def validate_identifier(s: str, name: str) -> None:
 
 def validate_api_version(s: str, name: str) -> None:
     assert isinstance(s, str), type(s)
-    if not re.match(VALID_APIVERSION_REGEX, s):
-        raise ValueError(f"invalid {name}: {s!r}")
+    parts = s.split("/")
+    match parts:
+        case [group, version]:
+            if not re.match(VALID_APIVERSION_GROUP_REGEX, group):
+                raise ValueError(f"invalid {name}: {s!r}")
+            if not re.match(VALID_APIVERSION_VERSION_REGEX, version):
+                raise ValueError(f"invalid {name}: {s!r}")
+        case [version]:
+            if not re.match(VALID_APIVERSION_VERSION_REGEX, version):
+                raise ValueError(f"invalid {name}: {s!r}")
+        case _:
+            raise ValueError(f"invalid {name}: {s!r}")
 
 
 @dataclass
@@ -39,11 +50,11 @@ class Resource(Generic[T]):
     class Error(Exception):
         pass
 
-    @dataclass
+    @dataclass(frozen=True)
     class NotFound(Error):
         uri: Resource.URI
 
-    @dataclass
+    @dataclass(frozen=True)
     class ValidationFailed(Error):
         uri: Resource.URI
         exc: Exception
@@ -129,6 +140,12 @@ class Resource(Generic[T]):
     @total_ordering
     @dataclass(frozen=True)
     class URI:
+        """
+        Represents unique resource identifiers. The `apiVersion` must consist of a `group` and a `version` formatted
+        as `group/version`. It is also acceptable to omit the `group` and have an `apiVersion` that is just a `version`.
+        The `version` component must begin with a `v` followed by a number (e.g. `v1`, `v2beta1`, `v1alpha1`, etc.).
+        """
+
         apiVersion: str
         kind: str
         namespace: str | None
@@ -156,14 +173,33 @@ class Resource(Generic[T]):
         @staticmethod
         def of(s: str) -> Resource.URI:
             parts = s.split("/")
-            try:
-                apiVersion = "/".join(parts[:-3])
-                kind = parts[-3]
-                namespace = parts[-2] or None
-                name = parts[-1]
-            except IndexError:
+
+            if len(parts) < 3:
                 raise ValueError(f"invalid Resource.URI: {s!r}")
-            return Resource.URI(apiVersion, kind, namespace, name)
+
+            # Determine if URI is using a `group/version` or just `version`` format.
+            try:
+                apiVersion = parts[0] + "/" + parts[1]
+                validate_api_version(apiVersion, "apiVersion component")
+                remainder = parts[2:]
+            except ValueError:
+                try:
+                    apiVersion = parts[0]
+                    validate_api_version(apiVersion, "apiVersion component")
+                    remainder = parts[1:]
+                except ValueError:
+                    raise ValueError(f"invalid Resource.URI: has invalid apiVersion component: {s!r}")
+
+            namespace: str | None
+            match remainder:
+                case [kind, namespace, name]:
+                    pass
+                case [kind, name]:
+                    namespace = None
+                case _:
+                    raise ValueError(f"invalid Resource.URI: {s!r}")
+
+            return Resource.URI(apiVersion, kind, namespace or None, name)
 
         @property
         def type(self) -> Resource.Type:

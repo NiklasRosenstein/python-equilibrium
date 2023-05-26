@@ -1,0 +1,5 @@
+[[entries]]
+id = "035f2e03-036e-4939-bb39-54336f339d90"
+type = "feature"
+description = "`Resource.URI.of()` can now parse namespace-less URIs. It also validates that the `apiVersion` is of the format `group/version` or `version` where `version` must start with a `v` followed by at least one number."
+author = "@NiklasRosenstein"

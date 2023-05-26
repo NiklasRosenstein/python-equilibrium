@@ -59,3 +59,61 @@ def test__Resource__get_state() -> None:
     assert resource.get_state(dict[str, int]) is not resource.state
     assert resource.get_state(dict[str, int]) == resource.state
     assert resource.get_state(MyState) == MyState(a=1)
+
+
+def test__Resource__URI__parse() -> None:
+    # Standard full URI format with namespace.
+    assert Resource.URI.of("example.com/v1/MyResource/default/my-resource") == Resource.URI(
+        apiVersion="example.com/v1",
+        kind="MyResource",
+        namespace="default",
+        name="my-resource",
+    )
+
+    # Full URI format with explicit empty namespace.
+    assert Resource.URI.of("example.com/v1/MyResource//my-resource") == Resource.URI(
+        apiVersion="example.com/v1",
+        kind="MyResource",
+        namespace=None,
+        name="my-resource",
+    )
+
+    # Namespace-less URI with a two-component API version.
+    assert Resource.URI.of("example.com/v1/MyResource/my-resource") == Resource.URI(
+        apiVersion="example.com/v1",
+        kind="MyResource",
+        namespace=None,
+        name="my-resource",
+    )
+
+    # Namespace-less URI with a one-component API version.
+    assert Resource.URI.of("v1/MyResource/my-resource") == Resource.URI(
+        apiVersion="v1",
+        kind="MyResource",
+        namespace=None,
+        name="my-resource",
+    )
+
+    # Namespace-less URI with a one-component API version that does not match one-component heuristics.
+    with pytest.raises(ValueError) as excinfo:
+        Resource.URI.of("foobar/MyResource/my-resource")
+    assert (
+        str(excinfo.value) == "invalid Resource.URI: has invalid apiVersion component: 'foobar/MyResource/my-resource'"
+    )
+
+    # Bad API versions.
+    bad_versions = [
+        "example.com/vzero/MyResource/my-resource",
+        "example.com/1/MyResource/my-resource",
+    ]
+    for bad_version in bad_versions:
+        with pytest.raises(ValueError) as excinfo:
+            Resource.URI.of(bad_version)
+        assert str(excinfo.value) == "invalid Resource.URI: has invalid apiVersion component: '%s'" % bad_version
+
+    # Good API versions.
+    good_versions = [
+        "example.com/v13alpha4/MyResource/my-resource",
+    ]
+    for good_version in good_versions:
+        Resource.URI.of(good_version)
