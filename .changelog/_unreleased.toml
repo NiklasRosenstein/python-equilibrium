@@ -3,3 +3,9 @@ id = "08f98baf-d4d2-43a5-9fde-2f9242abdbd6"
 type = "fix"
 description = "Unfreeze `Resource.NotFound` and `Resource.ValidationFailed` exception types as it leads to issues when the exception passed through `contextlib` (it will set the `__traceback__` attribute)"
 author = "@NiklasRosenstein"
+
+[[entries]]
+id = "4074e4f3-2bd1-4f27-99ce-4ee7dcb851c2"
+type = "fix"
+description = "Accidentally reverted in 0.5.2: `Resource.URI.of()` can now parse namespace-less URIs. It also validates that the `apiVersion` is of the format `group/version` or `version` where `version` must start with a `v` followed by at least one number."
+author = "@NiklasRosenstein"
