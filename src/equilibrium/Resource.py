@@ -39,11 +39,11 @@ class Resource(Generic[T]):
     class Error(Exception):
         pass
 
-    @dataclass(frozen=True)
+    @dataclass
     class NotFound(Error):
         uri: Resource.URI
 
-    @dataclass(frozen=True)
+    @dataclass
     class ValidationFailed(Error):
         uri: Resource.URI
         exc: Exception
