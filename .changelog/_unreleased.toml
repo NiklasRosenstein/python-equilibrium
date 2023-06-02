@@ -1,0 +1,5 @@
+[[entries]]
+id = "3c6f0318-d4cf-438c-ad37-47891a42ca0c"
+type = "breaking change"
+description = "Add `BaseController`, use a `BaseController.Context` type to pass parameters to controllers instead of setting members before invoking their methods, add `ResourceRegistry.store` property to give access to the underlying store."
+author = "@NiklasRosenstein"

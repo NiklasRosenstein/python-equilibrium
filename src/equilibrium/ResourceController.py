@@ -1,19 +1,11 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-from equilibrium.ResourceStore import ResourceStore
-from equilibrium.Service import Service
+from equilibrium.BaseController import BaseController
 
 __all__ = ["ResourceController"]
 
 
-class ResourceController(ABC):
-    # These are set automatically when the controller is registered to a context.
-    resources: ResourceStore
-    services: Service.Provider
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()"
-
+class ResourceController(BaseController):
     @abstractmethod
-    def reconcile(self) -> None:
+    def reconcile(self, ctx: BaseController.Context) -> None:
         ...
