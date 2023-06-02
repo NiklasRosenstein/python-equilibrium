@@ -234,7 +234,6 @@ class Resource(Generic[T]):
             apiVersion, kind = s.rpartition("/")[::2]
             return cls(apiVersion, kind)
 
-        @classmethod
         def uri(self, namespace: str | None, name: str) -> Resource.URI:
             return Resource.URI(self.apiVersion, self.kind, namespace, name)
 
@@ -259,7 +258,6 @@ class Resource(Generic[T]):
             namespace, name = s.rpartition("/")[::2]
             return cls(namespace or None, name)
 
-        @classmethod
         def uri(self, apiVersion: str, kind: str, name: str) -> Resource.URI:
             return Resource.URI(apiVersion, kind, self.namespace, name)
 
