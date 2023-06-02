@@ -1,4 +1,5 @@
 import logging
+from contextlib import ExitStack
 from typing import Any, TypeVar, overload
 
 from equilibrium.AdmissionController import AdmissionController
@@ -63,7 +64,12 @@ class ResourceRegistry:
             return default
         return result
 
-    def put(self, resource: Resource[Any], stateful: bool = False) -> Resource[Any]:
+    def put(
+        self,
+        resource: Resource[Any],
+        stateful: bool = False,
+        existing_lock: ResourceStore.LockID | None = None,
+    ) -> Resource[Any]:
         """
         Put a resource into the resource store. This will trigger the admission controllers. Any admission controller
         may complain about the resource, mutate it and raise an exception if necessary. This exception will propagate
@@ -76,6 +82,12 @@ class ResourceRegistry:
         If the *stateful* flag is set to True, the state of the resource will be committed to the resource store.
         Note that this also means that if the specified *resource* has no state, but the store currently does store
         a state for the resource, that state will be deleted.
+
+        :param resource: The resource to put into the store.
+        :param stateful: Allow writing the resource including its state into the store. This should only be used
+                         when updating a resource's state.
+        :param existing_lock: If an existing lock in the underlying #ResourceStore is already held by the caller,
+                              it should be passed along to avoid acquiring a new lock.
         """
 
         if not stateful and resource.state is not None:
@@ -104,7 +116,12 @@ class ResourceRegistry:
         # Check for admission errors.
         resource = self._controllers.admit(AdmissionController.Context(self, self._services), resource)
 
-        with self._store.enter(self._store.LockRequest.from_uri(uri)) as lock:
+        with ExitStack() as exit_stack:
+            if existing_lock is None:
+                lock = exit_stack.enter_context(self._store.enter(self._store.LockRequest.from_uri(uri)))
+            else:
+                lock = existing_lock
+
             if not stateful:
                 # Inherit the state of an existing resource, if it exists.
                 existing_resource = self._store.get(lock, uri)

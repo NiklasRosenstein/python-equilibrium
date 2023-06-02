@@ -150,7 +150,10 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
             else:
                 log.debug("Resource '%s' has been updated.", uri)
                 resource.set_state(self.state_type, current_state)
-                self.store.put(lock, resource.into_generic())
+
+                # NOTE(@NiklasRosenstein): We go through the #put() method of the #ResourceRegistry instead to invoke
+                #       admission controllers.
+                self.ctx.resources.put(resource, stateful=True, existing_lock=lock)
 
         except Exception:
             log.exception("An unhandled exception occurred reconciling a resource.")

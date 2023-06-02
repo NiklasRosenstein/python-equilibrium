@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any
 
-from equilibrium import BaseController
+from equilibrium.BaseController import BaseController
 from equilibrium.Resource import Resource
 
 __all__ = ["AdmissionController"]
