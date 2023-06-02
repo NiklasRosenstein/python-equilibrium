@@ -1,0 +1,5 @@
+[[entries]]
+id = "c3b84f08-88df-4ba8-917a-c16b6f27e18e"
+type = "feature"
+description = "Add `Resource.Type.uri()` and `Resource.Locator.uri()`"
+author = "@NiklasRosenstein"
