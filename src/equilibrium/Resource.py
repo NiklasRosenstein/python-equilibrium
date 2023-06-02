@@ -8,7 +8,9 @@ from typing import Any, ClassVar, Generic, Literal, Mapping, Protocol, Type as _
 
 import databind.json
 from databind.json.settings import JsonConverter
-from typing_extensions import Self  # 3.11+
+from typing_extensions import Self
+
+from equilibrium.types import FrozenDict, HashableMapping  # 3.11+
 
 __all__ = ["Resource", "match_labels", "validate_api_version", "validate_identifier"]
 
@@ -133,8 +135,8 @@ class Resource(Generic[T]):
 
     T_Spec = TypeVar("T_Spec", bound="Resource.Spec")
     T_State = TypeVar("T_State", bound="Resource.State")
-    GenericSpec = dict[str, Any]
-    GenericState = dict[str, Any]
+    GenericSpec = dict[str, Any]  # TODO(@NiklasRosenstein): Migrate to HashableMapping
+    GenericState = dict[str, Any]  # TODO(@NiklasRosenstein): Migrate to HashableMapping
 
     @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
     @total_ordering
@@ -265,8 +267,8 @@ class Resource(Generic[T]):
     class Metadata:
         namespace: str | None
         name: str
-        labels: dict[str, str] = field(default_factory=dict)
-        annotations: dict[str, str] = field(default_factory=dict)
+        labels: HashableMapping[str, str] = field(default_factory=FrozenDict)
+        annotations: HashableMapping[str, str] = field(default_factory=FrozenDict)
 
         def __post_init__(self) -> None:
             validate_identifier(self.name, "name")

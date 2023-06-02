@@ -7,6 +7,7 @@ from typing import Iterator, NewType
 
 from equilibrium.Namespace import Namespace
 from equilibrium.Resource import GenericResource, Resource
+from equilibrium.types import HashableMapping
 
 __all__ = ["ResourceStore"]
 
@@ -49,7 +50,7 @@ class ResourceStore(ABC):
         kind: str | None = None
         namespace: str | None = ""
         name: str | None = None
-        labels: dict[str, str] | None = None
+        labels: HashableMapping[str, str] | None = None
 
     class NamespaceNotEmpty(RuntimeError):
         """

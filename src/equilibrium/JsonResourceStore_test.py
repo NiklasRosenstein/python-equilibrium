@@ -8,6 +8,7 @@ import pytest
 from equilibrium.JsonResourceStore import JsonResourceStore
 from equilibrium.Namespace import Namespace
 from equilibrium.Resource import Resource
+from equilibrium.types import FrozenDict
 
 LockID = JsonResourceStore.LockID
 
@@ -23,13 +24,13 @@ def sut(tempdir: Path) -> JsonResourceStore:
     mgr = JsonResourceStore(tempdir)
     with mgr.enter(mgr.LockRequest()) as lock:
         mgr.put(lock, Namespace.create_resource("default"))
-        mgr.put(lock, Namespace.create_resource("foobar", labels={"spam": "eggs"}))
+        mgr.put(lock, Namespace.create_resource("foobar", labels=FrozenDict({"spam": "eggs"})))
         mgr.put(
             lock,
             Resource(
                 "v1",
                 "MyResource",
-                Resource.Metadata("default", "my-resource", labels={"foo": "bar"}),
+                Resource.Metadata("default", "my-resource", labels=FrozenDict({"foo": "bar"})),
                 {},
                 None,
                 {"state": "active"},
@@ -37,7 +38,14 @@ def sut(tempdir: Path) -> JsonResourceStore:
         )
         mgr.put(
             lock,
-            Resource("apps/v1", "MultiResource", Resource.Metadata("foobar", "my-multi"), {"spam": "bar"}, None, None),
+            Resource(
+                "apps/v1",
+                "MultiResource",
+                Resource.Metadata("foobar", "my-multi"),
+                FrozenDict({"spam": "bar"}),
+                None,
+                None,
+            ),
         )
     return mgr
 
@@ -97,7 +105,7 @@ def test__JsonResourceStore__get(sut: JsonResourceStore, lock: LockID) -> None:
     assert sut.get(lock, Resource.URI("v1", "MyResource", "default", "my-resource")) == Resource(
         "v1",
         "MyResource",
-        Resource.Metadata("default", "my-resource", labels={"foo": "bar"}),
+        Resource.Metadata("default", "my-resource", labels=FrozenDict({"foo": "bar"})),
         {},
         None,
         {"state": "active"},
@@ -163,16 +171,16 @@ def test__JsonResourceStore__search__by_name(sut: JsonResourceStore, lock: LockI
 
 
 def test__JsonResourceStore__search__by_labels(sut: JsonResourceStore, lock: LockID) -> None:
-    assert set(sut.search(lock, sut.SearchRequest(labels={"spam": "eggs"}))) == {
+    assert set(sut.search(lock, sut.SearchRequest(labels=FrozenDict({"spam": "eggs"})))) == {
         Resource.URI("v1", "Namespace", None, "foobar"),
     }
-    assert set(sut.search(lock, sut.SearchRequest(labels={"foo": "bar"}))) == {
+    assert set(sut.search(lock, sut.SearchRequest(labels=FrozenDict({"foo": "bar"})))) == {
         Resource.URI("v1", "MyResource", "default", "my-resource"),
     }
-    assert set(sut.search(lock, sut.SearchRequest(namespace="default", labels={"foo": "bar"}))) == {
+    assert set(sut.search(lock, sut.SearchRequest(namespace="default", labels=FrozenDict({"foo": "bar"})))) == {
         Resource.URI("v1", "MyResource", "default", "my-resource"),
     }
-    assert set(sut.search(lock, sut.SearchRequest(namespace="foobar", labels={"foo": "bar"}))) == set()
+    assert set(sut.search(lock, sut.SearchRequest(namespace="foobar", labels=FrozenDict({"foo": "bar"})))) == set()
 
 
 def test__JsonResourceStore__delete(sut: JsonResourceStore, lock: LockID) -> None:

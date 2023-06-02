@@ -9,6 +9,7 @@ from equilibrium.Resource import GenericResource, Resource
 from equilibrium.ResourceStore import ResourceStore
 from equilibrium.ResourceTypeRegistry import ResourceTypeRegistry
 from equilibrium.ServiceRegistry import ServiceRegistry
+from equilibrium.types import HashableMapping
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -166,7 +167,7 @@ class ResourceRegistry:
         kind: str | None = None,
         namespace: str | None = "",
         name: str | None = None,
-        labels: dict[str, str] | None = None,
+        labels: HashableMapping[str, str] | None = None,
     ) -> list[Resource.URI]:
         """
         Search for resources of the given type. If *namespace* is `""`, all namespaces and unnamespaced resources will
@@ -194,7 +195,7 @@ class ResourceRegistry:
         *,
         namespace: str | None = "",
         name: str | None = None,
-        labels: dict[str, str] | None = None,
+        labels: HashableMapping[str, str] | None = None,
     ) -> list[Resource[Resource.T_Spec]]:
         """
         Combines #search() and #get() to return a list of resources of the given type.
