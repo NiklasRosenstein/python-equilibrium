@@ -1,0 +1,11 @@
+[[entries]]
+id = "3c6f0318-d4cf-438c-ad37-47891a42ca0c"
+type = "breaking change"
+description = "Add `BaseController`, use a `BaseController.Context` type to pass parameters to controllers instead of setting members before invoking their methods, add `ResourceRegistry.store` property to give access to the underlying store."
+author = "@NiklasRosenstein"
+
+[[entries]]
+id = "2be62002-9508-4f5c-999a-d5c2b7deb164"
+type = "improvement"
+description = "Add `ResourceRegistry.put(existing_lock)` parameter. `CrudResourceController` now uses `ResourceRegistry.put()` to ensure that admission controllers are invoked when a resource is updated."
+author = "@NiklasRosenstein"
