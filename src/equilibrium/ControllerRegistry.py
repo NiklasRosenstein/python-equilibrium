@@ -1,8 +1,8 @@
 import logging
 from typing import Any
 
-from equilibrium.BaseController import BaseController
 from equilibrium.AdmissionController import AdmissionController
+from equilibrium.BaseController import BaseController
 from equilibrium.Resource import Resource
 from equilibrium.ResourceController import ResourceController
 

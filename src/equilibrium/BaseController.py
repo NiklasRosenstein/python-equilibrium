@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 from abc import ABC
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from equilibrium.Service import Service
-
 if TYPE_CHECKING:
-    from equilibrium import ResourceRegistry
+    from equilibrium.ResourceRegistry import ResourceRegistry
+    from equilibrium.Service import Service
 
 
 class BaseController(ABC):
@@ -17,10 +14,10 @@ class BaseController(ABC):
         #: not require the controller to manually acquire locks on the resources it would like to read, however it is
         #: not suitable for controllers that may work in a highly contested environment. In such cases, a controller
         #: should use the resource store directly.
-        resources: ResourceRegistry
+        resources: "ResourceRegistry"
 
         #: Provides access to the service registry.
-        services: Service.Provider
+        services: "Service.Provider"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
