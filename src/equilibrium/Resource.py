@@ -270,6 +270,9 @@ class Resource(Generic[T]):
         labels: HashableMapping[str, str] = field(default_factory=FrozenDict)
         annotations: HashableMapping[str, str] = field(default_factory=FrozenDict)
 
+        #: A string that identifies where the resource originates from.
+        origin: str | None = None
+
         def __post_init__(self) -> None:
             validate_identifier(self.name, "name")
             if self.namespace is not None:
@@ -280,6 +283,9 @@ class Resource(Generic[T]):
 
         def with_namespace(self, namespace: str | None) -> Resource.Metadata:
             return replace(self, namespace=namespace)
+
+        def with_origin(self, origin: str | None) -> Resource.Metadata:
+            return replace(self, origin=origin)
 
     @dataclass(frozen=True)
     class DeletionMarker:
@@ -337,7 +343,7 @@ class Resource(Generic[T]):
             self.apiVersion,
             self.kind,
             self.metadata,
-            cast(dict[str, Any], databind.json.dump(self.spec, type(self.spec))),
+            cast(dict[str, Any], databind.json.dump(self.spec, type(self.spec), filename=self.metadata.origin)),
             self.deletion_marker,
             self.state,
         )
@@ -353,7 +359,7 @@ class Resource(Generic[T]):
             return cast(Resource[U_Spec], self)
         if not isinstance(self.spec, Mapping):
             raise RuntimeError("Resource.into() can only be used for generic resources")
-        spec = databind.json.load(self.spec, spec_type)
+        spec = databind.json.load(self.spec, spec_type, filename=self.metadata.origin)
         return Resource(self.apiVersion, self.kind, self.metadata, spec, self.deletion_marker, self.state)
 
     @overload
@@ -370,7 +376,10 @@ class Resource(Generic[T]):
     def of(
         payload: dict[str, Any], spec_type: _Type[U_Spec] | None = None, *, filename: str | None = None
     ) -> Resource[Any]:
-        return databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type], filename)  # type: ignore[valid-type]  # noqa: E501
+        resource = databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type], filename)  # type: ignore[valid-type]  # noqa: E501
+        if filename is not None:
+            resource.metadata = resource.metadata.with_origin(filename)
+        return resource
 
     @staticmethod
     def create(metadata: Resource.Metadata, spec: U_Spec, state: GenericState | None = None) -> Resource[U_Spec]:
@@ -392,10 +401,10 @@ class Resource(Generic[T]):
         if state_type == Resource.GenericState or state_type is dict:
             return self.state
         else:
-            return cast(U_State, databind.json.load(self.state, state_type))
+            return cast(U_State, databind.json.load(self.state, state_type, filename=self.metadata.origin))
 
     def set_state(self, state_type: _Type[T_State], state: T_State) -> None:
-        self.state = cast(Resource.GenericState, databind.json.dump(state, state_type))
+        self.state = cast(Resource.GenericState, databind.json.dump(state, state_type, filename=self.metadata.origin))
 
 
 # NOTE(@NiklasRosenstein): We repeat the definition of the type variables here for use inside the Resource class.
