@@ -331,7 +331,7 @@ class Resource(Generic[T]):
         return Resource.URI(self.apiVersion, self.kind, self.metadata.namespace, self.metadata.name)
 
     def into_generic(self) -> GenericResource:
-        if isinstance(self.spec, dict):
+        if isinstance(self.spec, Mapping):
             return cast(GenericResource, self)
         return Resource(
             self.apiVersion,
@@ -351,7 +351,7 @@ class Resource(Generic[T]):
             raise ValueError(f"{self.kind=!r} does not match {spec_type.__name__}.kind={spec_type.KIND!r}")
         if isinstance(self.spec, spec_type):
             return cast(Resource[U_Spec], self)
-        if not isinstance(self.spec, dict):
+        if not isinstance(self.spec, Mapping):
             raise RuntimeError("Resource.into() can only be used for generic resources")
         spec = databind.json.load(self.spec, spec_type)
         return Resource(self.apiVersion, self.kind, self.metadata, spec, self.deletion_marker, self.state)
