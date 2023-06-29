@@ -1,0 +1,5 @@
+[[entries]]
+id = "579fcf86-1e5f-497d-b0f7-6728cd35bcdd"
+type = "improvement"
+description = "Pass filename on to `Resource.of()` from `ResourceContext.load_manifest()`"
+author = "@NiklasRosenstein"

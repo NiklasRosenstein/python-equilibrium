@@ -358,17 +358,19 @@ class Resource(Generic[T]):
 
     @overload
     @staticmethod
-    def of(payload: dict[str, Any]) -> GenericResource:
+    def of(payload: dict[str, Any], *, filename: str | None = None) -> GenericResource:
         ...
 
     @overload
     @staticmethod
-    def of(payload: dict[str, Any], spec_type: _Type[U_Spec]) -> Resource[U_Spec]:
+    def of(payload: dict[str, Any], spec_type: _Type[U_Spec], *, filename: str | None = None) -> Resource[U_Spec]:
         ...
 
     @staticmethod
-    def of(payload: dict[str, Any], spec_type: _Type[U_Spec] | None = None) -> Resource[Any]:
-        return databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type])  # type: ignore[valid-type]  # noqa: E501
+    def of(
+        payload: dict[str, Any], spec_type: _Type[U_Spec] | None = None, *, filename: str | None = None
+    ) -> Resource[Any]:
+        return databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type], filename)  # type: ignore[valid-type]  # noqa: E501
 
     @staticmethod
     def create(metadata: Resource.Metadata, spec: U_Spec, state: GenericState | None = None) -> Resource[U_Spec]:

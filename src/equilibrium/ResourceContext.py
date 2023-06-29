@@ -88,8 +88,8 @@ class ResourceContext:
 
         resources = []
         with Path(path).open() as fp:
-            for payload in yaml.safe_load_all(fp):
-                resource = Resource.of(payload)
+            for doc_idx, payload in enumerate(yaml.safe_load_all(fp)):
+                resource = Resource.of(payload, filename=f"{path}#document_index={doc_idx}")
                 resources.append(self.resources.put(resource))
         return resources
 
