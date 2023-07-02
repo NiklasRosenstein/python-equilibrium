@@ -89,9 +89,13 @@ class ResourceStore(ABC):
         State that has been modified while the lock was valid is guaranteed to be persisted.
         """
 
+        raise NotImplementedError
+
     @abstractmethod
     def release_lock(self, lock: LockID) -> None:
         """Release a lock on the store. Is a no-op if the lock is expired."""
+
+        raise NotImplementedError
 
     @abstractmethod
     def check_lock(self, lock: LockID, *, valid_for: float | None = None) -> bool:
@@ -100,9 +104,13 @@ class ResourceStore(ABC):
         specified number of seconds for this method to return True.
         """
 
+        raise NotImplementedError
+
     @abstractmethod
     def namespaces(self) -> list[Resource[Namespace]]:
         """Iterate over all namespaces."""
+
+        raise NotImplementedError
 
     @abstractmethod
     def search(self, lock: LockID, request: SearchRequest) -> list[Resource.URI]:
@@ -114,14 +122,22 @@ class ResourceStore(ABC):
         for resources in all namespaces ("").
         """
 
+        raise NotImplementedError
+
     @abstractmethod
     def get(self, lock: LockID, uri: Resource.URI) -> GenericResource | None:
         """Retrieve a resource by URI. Return None if the resource does not exist."""
+
+        raise NotImplementedError
 
     @abstractmethod
     def put(self, lock: LockID, resource: GenericResource) -> None:
         """Commit a resource to the store. Note for namespaced resources the namespace must already exist."""
 
+        raise NotImplementedError
+
     @abstractmethod
     def delete(self, lock: LockID, uri: Resource.URI) -> bool:
         """Delete a resource from the store. Returns `False` if the resource didn't exist."""
+
+        raise NotImplementedError

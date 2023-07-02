@@ -35,6 +35,8 @@ pytest = "*"
 pycln = "^2.1.3"
 rich = "^13.3.5"
 networkx-stubs = "^0.0.1"
+psycopg2-binary = "^2.9.6"
+types-psycopg2 = "^2.9.21.10"
 
 [tool.slap]
 typed = true
