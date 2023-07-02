@@ -5,6 +5,7 @@ from logging import Logger
 from typing import Any, ClassVar, Generic
 
 from equilibrium.AdmissionController import AdmissionController
+from equilibrium.BaseController import BaseController
 from equilibrium.Resource import Resource
 from equilibrium.ResourceController import ResourceController
 from equilibrium.ResourceStore import ResourceStore
@@ -21,6 +22,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
     state_type: type[Resource.T_State]
     _logger_name: ClassVar[str]
     log: Logger
+    ctx: BaseController.Context  # Set in reconcile() and admit_resource().
 
     class Status(Enum):
         Deleted = "deleted"
@@ -37,6 +39,10 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
         cls._logger_name = f"{cls.__module__}.{cls.__name__}"
         cls.spec_type = spec_type
         cls.state_type = state_type
+
+    @property
+    def store(self) -> ResourceStore:
+        return self.ctx.resources.store
 
     def admit(self, resource: Resource[Resource.T_Spec]) -> Resource[Resource.T_Spec]:
         """
@@ -75,7 +81,7 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
 
     def _reconcile_internal(self, lock: ResourceStore.LockID, uri: Resource.URI) -> None:
         log = self._get_logger(uri)
-        raw_resource = self.resources.get(lock, uri)
+        raw_resource = self.store.get(lock, uri)
         if raw_resource is None:
             log.warning("Resource %r no longer exists, skipping reconciliation.", uri)
             return
@@ -140,35 +146,39 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
 
             if current_state is None:
                 log.debug("Resource '%s' has been deleted.", uri)
-                self.resources.delete(lock, uri)
+                self.store.delete(lock, uri)
             else:
                 log.debug("Resource '%s' has been updated.", uri)
                 resource.set_state(self.state_type, current_state)
-                self.resources.put(lock, resource.into_generic())
+
+                # NOTE(@NiklasRosenstein): We go through the #put() method of the #ResourceRegistry instead to invoke
+                #       admission controllers.
+                self.ctx.resources.put(resource, stateful=True, existing_lock=lock)
 
         except Exception:
             log.exception("An unhandled exception occurred reconciling a resource.")
 
     # ResourceController
 
-    def reconcile(self) -> None:
+    def reconcile(self, ctx: ResourceController.Context) -> None:
         self.log = self._get_logger(None)
+        self.ctx = ctx
 
-        namespaces = self.resources.namespaces()
+        namespaces = self.store.namespaces()
         self.log.info(
             "Reconciling resources of type '%s' (namespaces: %r)",
             self.spec_type.TYPE,
             {ns.metadata.name for ns in namespaces},
         )
         for namespace in namespaces:
-            lock_request = self.resources.LockRequest(apiVersion=self.spec_type.API_VERSION, kind=self.spec_type.KIND)
-            with self.resources.enter(lock_request) as lock:
-                search_request = self.resources.SearchRequest(
+            lock_request = self.store.LockRequest(apiVersion=self.spec_type.API_VERSION, kind=self.spec_type.KIND)
+            with self.store.enter(lock_request) as lock:
+                search_request = self.store.SearchRequest(
                     apiVersion=self.spec_type.API_VERSION,
                     kind=self.spec_type.KIND,
                     namespace=namespace.metadata.name,
                 )
-                resource_uris = self.resources.search(lock, search_request)
+                resource_uris = self.store.search(lock, search_request)
 
             self.log.debug(
                 "Found %d resources of type '%s' in namespace '%s'.",
@@ -177,15 +187,16 @@ class CrudResourceController(ResourceController, AdmissionController, Generic[Re
                 namespace.metadata.name,
             )
             for uri in resource_uris:
-                lock_request = self.resources.LockRequest.from_uri(uri)
-                with self.resources.enter(lock_request) as lock:
+                lock_request = self.store.LockRequest.from_uri(uri)
+                with self.store.enter(lock_request) as lock:
                     self._reconcile_internal(lock, uri)
 
     # AdmissionController
 
-    def admit_resource(self, resource: Resource[Any]) -> Resource[Any]:
+    def admit_resource(self, ctx: AdmissionController.Context, resource: Resource[Any]) -> Resource[Any]:
         if self.spec_type.check_uri(resource.uri):
             self.log = self._get_logger(resource.uri)
             self.log.debug("Checking for admittance of resource '%s'.", resource.uri)
+            self.ctx = ctx
             return self.admit(resource.into(self.spec_type))
         return resource

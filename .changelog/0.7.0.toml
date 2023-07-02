@@ -1,0 +1,7 @@
+release-date = "2023-06-02"
+
+[[entries]]
+id = "8f21f9a0-0a1c-423b-ae16-977fcc90d6e4"
+type = "breaking change"
+description = "Introduced `FrozenDict`, `FrozenList`, `HashableMapping` and `HashableSequence`, now required on frozen dataclasses."
+author = "@NiklasRosenstein"

@@ -1,0 +1,13 @@
+release-date = "2023-06-29"
+
+[[entries]]
+id = "579fcf86-1e5f-497d-b0f7-6728cd35bcdd"
+type = "improvement"
+description = "Pass filename on to `Resource.of()` from `ResourceContext.load_manifest()`"
+author = "@NiklasRosenstein"
+
+[[entries]]
+id = "4cca1159-4471-4204-9211-d22a42ab3d55"
+type = "fix"
+description = "Fix `GenericResource` to consist of a mapping"
+author = "@NiklasRosenstein"

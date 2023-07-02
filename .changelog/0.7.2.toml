@@ -1,0 +1,7 @@
+release-date = "2023-06-29"
+
+[[entries]]
+id = "e31d4a0b-dc17-4e70-888f-f08ad7375024"
+type = "feature"
+description = "Add `Resource.Metadata.origin` that allows us to track where a resource was loaded from. It is passed to any `databind.json.load()` and `.dump()` invokation"
+author = "@NiklasRosenstein"

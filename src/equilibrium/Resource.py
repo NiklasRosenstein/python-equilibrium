@@ -8,7 +8,9 @@ from typing import Any, ClassVar, Generic, Literal, Mapping, Protocol, Type as _
 
 import databind.json
 from databind.json.settings import JsonConverter
-from typing_extensions import Self  # 3.11+
+from typing_extensions import Self
+
+from equilibrium.types import FrozenDict, HashableMapping  # 3.11+
 
 __all__ = ["Resource", "match_labels", "validate_api_version", "validate_identifier"]
 
@@ -133,8 +135,8 @@ class Resource(Generic[T]):
 
     T_Spec = TypeVar("T_Spec", bound="Resource.Spec")
     T_State = TypeVar("T_State", bound="Resource.State")
-    GenericSpec = dict[str, Any]
-    GenericState = dict[str, Any]
+    GenericSpec = dict[str, Any]  # TODO(@NiklasRosenstein): Migrate to HashableMapping
+    GenericState = dict[str, Any]  # TODO(@NiklasRosenstein): Migrate to HashableMapping
 
     @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
     @total_ordering
@@ -234,6 +236,9 @@ class Resource(Generic[T]):
             apiVersion, kind = s.rpartition("/")[::2]
             return cls(apiVersion, kind)
 
+        def uri(self, namespace: str | None, name: str) -> Resource.URI:
+            return Resource.URI(self.apiVersion, self.kind, namespace, name)
+
     @JsonConverter.using_classmethods(serialize="__str__", deserialize="of")
     @dataclass(frozen=True)
     class Locator:
@@ -255,12 +260,18 @@ class Resource(Generic[T]):
             namespace, name = s.rpartition("/")[::2]
             return cls(namespace or None, name)
 
+        def uri(self, apiVersion: str, kind: str, name: str) -> Resource.URI:
+            return Resource.URI(apiVersion, kind, self.namespace, name)
+
     @dataclass(frozen=True)
     class Metadata:
         namespace: str | None
         name: str
-        labels: dict[str, str] = field(default_factory=dict)
-        annotations: dict[str, str] = field(default_factory=dict)
+        labels: HashableMapping[str, str] = field(default_factory=FrozenDict)
+        annotations: HashableMapping[str, str] = field(default_factory=FrozenDict)
+
+        #: A string that identifies where the resource originates from.
+        origin: str | None = None
 
         def __post_init__(self) -> None:
             validate_identifier(self.name, "name")
@@ -272,6 +283,9 @@ class Resource(Generic[T]):
 
         def with_namespace(self, namespace: str | None) -> Resource.Metadata:
             return replace(self, namespace=namespace)
+
+        def with_origin(self, origin: str | None) -> Resource.Metadata:
+            return replace(self, origin=origin)
 
     @dataclass(frozen=True)
     class DeletionMarker:
@@ -323,13 +337,13 @@ class Resource(Generic[T]):
         return Resource.URI(self.apiVersion, self.kind, self.metadata.namespace, self.metadata.name)
 
     def into_generic(self) -> GenericResource:
-        if isinstance(self.spec, dict):
+        if isinstance(self.spec, Mapping):
             return cast(GenericResource, self)
         return Resource(
             self.apiVersion,
             self.kind,
             self.metadata,
-            cast(dict[str, Any], databind.json.dump(self.spec, type(self.spec))),
+            cast(dict[str, Any], databind.json.dump(self.spec, type(self.spec), filename=self.metadata.origin)),
             self.deletion_marker,
             self.state,
         )
@@ -343,24 +357,29 @@ class Resource(Generic[T]):
             raise ValueError(f"{self.kind=!r} does not match {spec_type.__name__}.kind={spec_type.KIND!r}")
         if isinstance(self.spec, spec_type):
             return cast(Resource[U_Spec], self)
-        if not isinstance(self.spec, dict):
+        if not isinstance(self.spec, Mapping):
             raise RuntimeError("Resource.into() can only be used for generic resources")
-        spec = databind.json.load(self.spec, spec_type)
+        spec = databind.json.load(self.spec, spec_type, filename=self.metadata.origin)
         return Resource(self.apiVersion, self.kind, self.metadata, spec, self.deletion_marker, self.state)
 
     @overload
     @staticmethod
-    def of(payload: dict[str, Any]) -> GenericResource:
+    def of(payload: dict[str, Any], *, filename: str | None = None) -> GenericResource:
         ...
 
     @overload
     @staticmethod
-    def of(payload: dict[str, Any], spec_type: _Type[U_Spec]) -> Resource[U_Spec]:
+    def of(payload: dict[str, Any], spec_type: _Type[U_Spec], *, filename: str | None = None) -> Resource[U_Spec]:
         ...
 
     @staticmethod
-    def of(payload: dict[str, Any], spec_type: _Type[U_Spec] | None = None) -> Resource[Any]:
-        return databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type])  # type: ignore[valid-type]  # noqa: E501
+    def of(
+        payload: dict[str, Any], spec_type: _Type[U_Spec] | None = None, *, filename: str | None = None
+    ) -> Resource[Any]:
+        resource = databind.json.load(payload, GenericResource if spec_type is None else Resource[spec_type], filename)  # type: ignore[valid-type]  # noqa: E501
+        if filename is not None:
+            resource.metadata = resource.metadata.with_origin(filename)
+        return resource
 
     @staticmethod
     def create(metadata: Resource.Metadata, spec: U_Spec, state: GenericState | None = None) -> Resource[U_Spec]:
@@ -382,10 +401,10 @@ class Resource(Generic[T]):
         if state_type == Resource.GenericState or state_type is dict:
             return self.state
         else:
-            return cast(U_State, databind.json.load(self.state, state_type))
+            return cast(U_State, databind.json.load(self.state, state_type, filename=self.metadata.origin))
 
     def set_state(self, state_type: _Type[T_State], state: T_State) -> None:
-        self.state = cast(Resource.GenericState, databind.json.dump(state, state_type))
+        self.state = cast(Resource.GenericState, databind.json.dump(state, state_type, filename=self.metadata.origin))
 
 
 # NOTE(@NiklasRosenstein): We repeat the definition of the type variables here for use inside the Resource class.
